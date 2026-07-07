@@ -846,6 +846,13 @@
             margin-right: var(--space-2);
         }
 
+        .contact-day-date {
+            margin-left: var(--space-1);
+            font-size: var(--font-xs);
+            font-weight: 400;
+            color: var(--text-muted);
+        }
+
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -1316,8 +1323,33 @@
                     return date.toLocaleDateString('en-GB', {
                         weekday: 'short', day: 'numeric', month: 'short'
                     });
+                },
+                // dayIndex is 0=Mon ... 4=Fri, offset from that week's Monday start date.
+                getDayDateObject(baseDateStr, weekNumber, dayIndex) {
+                    const weekStart = this.getWeekStartDateObject(baseDateStr, weekNumber);
+                    if (!weekStart) return null;
+
+                    const date = new Date(weekStart);
+                    date.setDate(date.getDate() + dayIndex);
+                    return date;
+                },
+                getDayDate(baseDateStr, weekNumber, dayIndex) {
+                    const date = this.getDayDateObject(baseDateStr, weekNumber, dayIndex);
+                    if (!date) return '';
+
+                    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
                 }
             };
+
+            // Shared definition of the per-week Contact Days checklist: [fieldCode, label, dayIndex].
+            // dayIndex feeds dateUtils.getDayDate/getDayDateObject (0=Mon ... 4=Fri).
+            const WEEKDAY_DEFS = [
+                ['mon', 'Mon', 0],
+                ['tue', 'Tue', 1],
+                ['wed', 'Wed', 2],
+                ['thu', 'Thu', 3],
+                ['fri', 'Fri', 4]
+            ];
 
             // --- Export Drift Tracking Helpers ---
             // A week's "changed since export" state is derived from state.meta.weekMeta,
@@ -1637,6 +1669,19 @@
                                 </div>
                                 <div class="week-meta">
                                     <h5>Management</h5>
+                                    <label style="margin-top: var(--space-3);">Contact Days</label>
+                                    <ul class="checklist contact-days">
+                                        ${WEEKDAY_DEFS.map(([code, label, dayIndex]) => {
+                                            const dayKey = `week-${weekNumber}-day-${code}`;
+                                            const dayDate = dateUtils.getDayDate(effectiveStartDate, weekNumber, dayIndex);
+                                            // New weeks (not yet in data) inherit the global Contact Days
+                                            // pattern from Configure; weeks already saved keep whatever was
+                                            // explicitly set, even if that means unticking a normally-active day.
+                                            const isExplicit = Object.prototype.hasOwnProperty.call(data, dayKey);
+                                            const isChecked = isExplicit ? !!data[dayKey] : !!data[`meeting-day-${code}`];
+                                            return `<li><label><input type="checkbox" name="${dayKey}" ${isChecked ? 'checked' : ''}> ${label}${dayDate ? ` <span class="contact-day-date">${dayDate}</span>` : ''}</label></li>`;
+                                        }).join('')}
+                                    </ul>
                                     <ul class="checklist">
                                         ${hasLectures ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-lecture"> Lectures prepared</label></li>` : ''}
                                         ${hasWorkshops ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-workshop">Workshops prepared </label></li>` : ''}
@@ -1714,6 +1759,16 @@
                             }
                         }
 
+                        // Contact Days checkboxes: mirror createWeekCard's explicit-vs-fallback
+                        // logic so reloading doesn't override the pattern inherited from Configure.
+                        WEEKDAY_DEFS.forEach(([code]) => {
+                            const dayKey = `${weekPrefix}day-${code}`;
+                            const checkbox = document.querySelector(`[name="${dayKey}"]`);
+                            if (checkbox) {
+                                const isExplicit = Object.prototype.hasOwnProperty.call(data, dayKey);
+                                checkbox.checked = isExplicit ? !!data[dayKey] : !!data[`meeting-day-${code}`];
+                            }
+                        });
                         // Checkboxes for prep checklist
                         ['lecture', 'workshop', 'seminar', 'tutorial'].forEach(type => {
                             const checkbox = document.querySelector(`[name="${weekPrefix}prep-${type}"]`);
@@ -2130,14 +2185,21 @@
 
                     const events = [];
                     for (let i = 1; i <= teachingWeeks; i++) {
-                        const weekDate = dateUtils.getWeekStartDateObject(effectiveStartDate, i);
-                        if (!weekDate) continue;
-
                         const topic = (document.getElementById(`week-${i}-topic`)?.value || '').trim();
-                        events.push({
-                            date: weekDate,
-                            summary: `This week in ${unitTitle}`,
-                            description: topic ? `Week ${i}: ${topic}` : `Week ${i}`
+
+                        // One event per checked Contact Day, not one per week - weeks with no
+                        // contact days (e.g. reading week) correctly produce no calendar entries.
+                        WEEKDAY_DEFS.forEach(([code, label, dayIndex]) => {
+                            if (!data[`week-${i}-day-${code}`]) return;
+
+                            const dayDate = dateUtils.getDayDateObject(effectiveStartDate, i, dayIndex);
+                            if (!dayDate) return;
+
+                            events.push({
+                                date: dayDate,
+                                summary: `This week in ${unitTitle} (${label})`,
+                                description: topic ? `Week ${i}: ${topic}` : `Week ${i}`
+                            });
                         });
                     }
 
