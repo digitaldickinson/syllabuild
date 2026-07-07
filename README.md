@@ -1,5 +1,8 @@
 # Syllabuild
 
+<img width="859" height="588" alt="image" src="https://github.com/user-attachments/assets/ada0c305-12f1-4688-ab67-82550c167c2a" />
+
+
 A local-first, zero-dependency, single-file curriculum design application tailored for UK Higher Education modules. 
 
 Syllabuild bridges the gap between pedagogical software planning and rigid academic administrative compliance. It allows unit leaders to construct rich linear schedules, calculate notional student workloads, map curriculum requirements, and export clean snippets directly to Virtual Learning Environments (VLEs) or validation documents.
