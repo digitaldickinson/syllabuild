@@ -1,0 +1,2256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syllabuild</title>
+    <!-- DOCX Generation Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/html-docx-js@0.3.1/dist/html-docx.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- Rich Text Editor -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+    <style>
+        :root {
+            /* Colors */
+            --surface-color: #ffffff;
+            --primary-color: #163a5e;
+            --accent-color: #3b82f6;
+            --primary-text-color: #ffffff;
+            --text-color: #152033;
+            --text-muted: #5d6b82;
+            --border-color: #dce5ee;
+            --panel-tint: #f8fbff;
+            --panel-tint-2: #f2f7fc;
+            --input-bg: #fcfdff;
+
+            /* Layout constants */
+            --drawer-width: 360px;
+            --header-height: 72px;
+
+            /* Type scale */
+            --font-xs: 0.8rem;
+            --font-sm: 0.9rem;
+            --font-base: 1rem;
+            --font-md: 1.2rem;
+            --font-lg: 1.35rem;
+            --font-2xl: 1.8rem;
+            --line-height-base: 1.6;
+
+            /* Spacing scale */
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-5: 20px;
+            --space-6: 24px;
+            --space-7: 32px;
+            --space-8: 40px;
+
+            /* Radius scale */
+            --radius-sm: 8px;
+            --radius-md: 16px;
+            --radius-lg: 20px;
+            --radius-pill: 999px;
+
+            /* Shadows */
+            --shadow-header: 0 8px 24px rgba(15, 23, 42, 0.18);
+            --shadow-drawer: 10px 0 30px rgba(15, 23, 42, 0.06);
+            --shadow-sm: 0 8px 18px rgba(15, 23, 42, 0.08);
+            --shadow-md: 0 16px 45px rgba(15, 23, 42, 0.08);
+            --shadow-lg: 0 24px 70px rgba(15, 23, 42, 0.24);
+            --shadow-accent-sm: 0 8px 18px rgba(59, 130, 246, 0.18);
+            --shadow-accent-md: 0 10px 24px rgba(59, 130, 246, 0.22);
+            --focus-ring: 0 0 0 3px rgba(59, 130, 246, 0.16);
+
+            /* Motion */
+            --transition-fast: 0.15s ease;
+            --transition-slow: 0.3s ease-in-out;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(180deg, #f7f9fc 0%, #eef4f9 100%);
+            color: var(--text-color);
+            line-height: var(--line-height-base);
+            min-height: 100vh;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Custom checkbox/radio rendering: native controls differ too much
+           across browsers/OSes to leave unstyled. Sizes/radii here are
+           calibrated to the tiny 18px control itself, not the layout scale. */
+        input[type="checkbox"],
+        input[type="radio"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            border: 1.5px solid var(--border-color);
+            background-color: #ffffff;
+            display: inline-block;
+            position: relative;
+            flex-shrink: 0;
+            vertical-align: middle;
+            cursor: pointer;
+            transition: background-color var(--transition-fast), border-color var(--transition-fast);
+        }
+
+        input[type="checkbox"] {
+            border-radius: 5px;
+        }
+
+        input[type="radio"] {
+            border-radius: 50%;
+        }
+
+        input[type="checkbox"]:checked,
+        input[type="radio"]:checked {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        input[type="checkbox"]:checked::after {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 1px;
+            width: 5px;
+            height: 9px;
+            border: solid #ffffff;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        input[type="radio"]:checked::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background-color: #ffffff;
+        }
+
+        input[type="checkbox"]:focus-visible,
+        input[type="radio"]:focus-visible {
+            outline: 2px solid var(--accent-color);
+            outline-offset: 2px;
+        }
+
+        .app-bar {
+            background: linear-gradient(90deg, var(--primary-color) 0%, #214b74 100%);
+            color: var(--primary-text-color);
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 var(--space-6);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            box-shadow: var(--shadow-header);
+        }
+
+        .app-bar h1 {
+            font-size: var(--font-lg);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .app-bar .controls {
+            display: flex;
+            gap: var(--space-3);
+            flex-wrap: wrap;
+        }
+
+        .app-bar .controls button {
+            position: relative;
+            background-color: rgba(255, 255, 255, 0.12);
+            color: var(--primary-text-color);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: var(--space-2) var(--space-4);
+            border-radius: var(--radius-pill);
+            cursor: pointer;
+            transition: transform var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
+            font-weight: 600;
+        }
+
+        .app-bar .controls button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* Single consolidated "unexported changes" indicator, replacing what used
+           to be a badge repeated on every week tab. Same treatment reused for the
+           document-level "unsaved changes" dot on the Save button. */
+        #export-word-button.has-pending-changes::after,
+        #save-button.has-pending-changes::after {
+            content: '';
+            position: absolute;
+            top: -3px;
+            right: -3px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #f59e0b;
+            box-shadow: 0 0 0 2px var(--primary-color);
+        }
+
+        #toggle-drawer {
+            border-color: rgba(255, 255, 255, 0.24);
+            background-color: rgba(255, 255, 255, 0.16);
+            color: var(--primary-text-color);
+        }
+
+        .drawer {
+            position: fixed;
+            top: var(--header-height);
+            left: 0;
+            width: var(--drawer-width);
+            height: calc(100vh - var(--header-height));
+            background: var(--surface-color);
+            border-right: 1px solid var(--border-color);
+            transform: translateX(-100%);
+            transition: transform var(--transition-slow);
+            overflow-y: auto;
+            padding: var(--space-5);
+            z-index: 900;
+            box-shadow: var(--shadow-drawer);
+        }
+
+        .drawer.open {
+            transform: translateX(0);
+        }
+
+        .drawer form {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+        }
+
+        .drawer fieldset {
+            border: 1px solid var(--border-color);
+            padding: var(--space-4);
+            border-radius: var(--radius-md);
+            background: linear-gradient(180deg, #ffffff 0%, var(--panel-tint) 100%);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+
+        .drawer legend {
+            font-weight: 700;
+            padding: 0 var(--space-2);
+            color: var(--primary-color);
+        }
+
+        .drawer label {
+            display: block;
+            margin-bottom: var(--space-2);
+            font-size: var(--font-sm);
+            color: var(--text-muted);
+        }
+
+        .checkbox-group-label {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            font-size: var(--font-sm);
+            color: var(--text-color);
+        }
+
+        .drawer input[type="text"],
+        .drawer input[type="number"],
+        .drawer input[type="date"],
+        .drawer input[type="url"],
+        .drawer textarea {
+            width: 100%;
+            padding: var(--space-2) var(--space-3);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            margin-bottom: var(--space-3);
+            font-family: inherit;
+            background-color: var(--input-bg);
+            transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+        }
+
+        .drawer input:focus,
+        .drawer textarea:focus,
+        .week-card input:focus,
+        .week-card textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: var(--focus-ring);
+        }
+
+        .drawer textarea {
+            min-height: 84px;
+            resize: vertical;
+        }
+
+        .drawer select.drawer-select {
+            width: 100%;
+            padding: var(--space-2) var(--space-3);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            margin-bottom: var(--space-3);
+        }
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+            margin-bottom: var(--space-3);
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-2) var(--space-3);
+            background: var(--panel-tint);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-pill);
+            color: var(--text-color);
+            margin-bottom: 0;
+        }
+
+        .date-option-group {
+            display: flex;
+            gap: var(--space-4);
+            margin-bottom: var(--space-3);
+            margin-top: var(--space-1);
+        }
+
+        .content-area {
+            margin-top: var(--header-height);
+            padding: var(--space-6) var(--space-6) var(--space-8);
+            transition: margin-left var(--transition-slow);
+            max-width: 1320px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .content-area.drawer-open {
+            margin-left: calc(var(--drawer-width) + var(--space-6));
+        }
+
+        .dashboard {
+            position: sticky;
+            top: calc(var(--header-height) + 10px);
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: var(--space-3);
+            padding: var(--space-4);
+            margin-bottom: var(--space-6);
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(220, 229, 238, 0.9);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            z-index: 800;
+        }
+
+        /* Unlike .dashboard this is NOT sticky - two stacked sticky elements at the
+           same offset would overlap each other while scrolling. */
+        .dashboard-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: var(--space-3);
+            padding: var(--space-4);
+            margin-bottom: var(--space-6);
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(220, 229, 238, 0.9);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+        }
+
+        .syllabus-header {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-6);
+            margin-bottom: var(--space-6);
+            box-shadow: var(--shadow-md);
+        }
+
+        .syllabus-header h2 {
+            font-size: var(--font-2xl);
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: var(--space-1);
+        }
+
+        .syllabus-header p {
+            color: var(--text-muted);
+            line-height: var(--line-height-base);
+        }
+
+        .syllabus-header a {
+            color: var(--accent-color);
+            font-weight: 600;
+        }
+
+        .syllabus-header .unit-meta {
+            margin-bottom: var(--space-4);
+        }
+
+        .syllabus-header .leader-info {
+            font-size: var(--font-base);
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-top: 0;
+            margin-bottom: var(--space-4);
+        }
+
+        #header-reading-list {
+            margin-top: var(--space-2);
+        }
+
+        .dashboard-item {
+            text-align: left;
+            padding: var(--space-2) var(--space-3);
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, var(--panel-tint) 0%, var(--panel-tint-2) 100%);
+        }
+
+        .dashboard-item .value {
+            font-size: var(--font-2xl);
+            font-weight: 700;
+            color: var(--primary-color);
+            line-height: 1.1;
+        }
+
+        .dashboard-item .label {
+            font-size: var(--font-sm);
+            color: var(--text-muted);
+            margin-top: var(--space-1);
+        }
+
+        .week-timeline {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: var(--space-3);
+            margin-bottom: var(--space-3);
+        }
+
+        .week-tab {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--space-1);
+            padding: var(--space-3) var(--space-4);
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background: linear-gradient(180deg, var(--panel-tint) 0%, var(--panel-tint-2) 100%);
+            color: var(--text-muted);
+            font-weight: 600;
+            transition: all var(--transition-fast);
+            min-height: 78px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            position: relative;
+        }
+
+        .week-tab:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .week-tab .week-label {
+            font-size: var(--font-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            opacity: 0.8;
+        }
+
+        .week-tab .week-number {
+            font-size: var(--font-md);
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        .week-tab .week-date {
+            font-size: var(--font-xs);
+            font-weight: 600;
+            opacity: 0.7;
+        }
+
+        .week-tab.active {
+            background: linear-gradient(135deg, var(--accent-color) 0%, #3a73d4 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: var(--shadow-accent-md);
+        }
+
+        .week-tab.active .week-number,
+        .week-tab.active .week-label {
+            color: white;
+        }
+
+        .week-tab.pending {
+            background: linear-gradient(135deg, #f0f5ff 0%, #e6f0ff 100%);
+            border-color: #cce0ff;
+            color: #3366cc;
+        }
+
+        .week-tab.pending .week-number,
+        .week-tab.pending .week-label {
+            color: #004080;
+        }
+
+        .week-tab.partial {
+            background: linear-gradient(135deg, #fff7e6 0%, #fef0c7 100%);
+            border-color: #f0d07d;
+            color: #8a5a00;
+        }
+
+        .week-tab.partial .week-number,
+        .week-tab.partial .week-label {
+            color: #8a5a00;
+        }
+
+        .week-tab.completed {
+            background: linear-gradient(135deg, #e8f8ee 0%, #dff5e7 100%);
+            border-color: #bfe4ca;
+            color: #2f6a45;
+        }
+
+        .week-tab.completed .week-number,
+        .week-tab.completed .week-label {
+            color: #2f6a45;
+        }
+
+        .week-tab.external-factor::after {
+            content: '!';
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 18px;
+            height: 18px;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            line-height: 1;
+            box-shadow: 0 0 0 2px var(--surface-color);
+        }
+
+        /* Bottom-right - there's no other badge down there, and it stops crowding
+           the week number/topic text at the top of the tab. */
+        .week-tab.has-assessment::before {
+            content: '★';
+            position: absolute;
+            bottom: 4px;
+            right: 6px;
+            font-size: 12px;
+            color: #f59e0b;
+            line-height: 1;
+        }
+
+        .week-card {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-5);
+            box-shadow: var(--shadow-md);
+        }
+
+        .week-card-body {
+            display: flex;
+            gap: var(--space-6);
+            align-items: flex-start;
+        }
+
+        .week-content {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .week-meta {
+            flex: 0 0 280px;
+            padding: var(--space-4);
+            border-radius: var(--radius-md);
+            background: linear-gradient(180deg, var(--panel-tint) 0%, var(--panel-tint-2) 100%);
+            border: 1px solid var(--border-color);
+            font-size: var(--font-sm);
+        }
+
+        .week-meta h5 {
+            font-size: var(--font-sm);
+            color: var(--primary-color);
+            margin-bottom: var(--space-2);
+        }
+
+        .week-export-section {
+            margin-top: var(--space-5);
+            padding-top: var(--space-4);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .week-export-section .export-week-button {
+            width: 100%;
+            padding: var(--space-2) var(--space-3);
+            border: none;
+            border-radius: var(--radius-sm);
+            background: var(--accent-color);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+        }
+
+        .week-export-section .export-week-button:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-accent-sm);
+        }
+
+        .week-card h4 {
+            font-size: var(--font-md);
+            color: var(--primary-color);
+            margin-bottom: var(--space-4);
+        }
+
+        .week-card .week-card-date {
+            font-size: var(--font-sm);
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-top: calc(var(--space-3) * -1);
+            margin-bottom: var(--space-4);
+        }
+
+        .week-card label {
+            display: block;
+            font-weight: 700;
+            font-size: var(--font-xs);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: var(--space-3);
+            margin-bottom: var(--space-1);
+        }
+
+        .quill-editor-wrapper {
+            margin-top: var(--space-3);
+        }
+
+        .quill-editor-wrapper .ql-toolbar.ql-snow {
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+            background: var(--panel-tint);
+        }
+
+        .quill-editor-wrapper .ql-container.ql-snow {
+            border: 1px solid var(--border-color);
+            border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+            background-color: var(--input-bg);
+            font-family: inherit;
+            font-size: inherit;
+        }
+
+        .quill-editor-wrapper .ql-editor {
+            min-height: 120px;
+            line-height: var(--line-height-base);
+        }
+
+        /* Re-skin Quill's icon/accent colors to match the app's palette instead of its own defaults */
+        .quill-editor-wrapper .ql-snow .ql-stroke,
+        .quill-editor-wrapper .ql-snow .ql-stroke-miter {
+            stroke: var(--text-muted);
+        }
+
+        .quill-editor-wrapper .ql-snow .ql-fill,
+        .quill-editor-wrapper .ql-snow .ql-stroke.ql-fill {
+            fill: var(--text-muted);
+        }
+
+        .quill-editor-wrapper .ql-toolbar.ql-snow button {
+            border-radius: var(--radius-sm);
+        }
+
+        .quill-editor-wrapper .ql-toolbar.ql-snow button:hover,
+        .quill-editor-wrapper .ql-toolbar.ql-snow button:focus,
+        .quill-editor-wrapper .ql-toolbar.ql-snow button.ql-active {
+            background: #eef4fb;
+            color: var(--accent-color);
+        }
+
+        .quill-editor-wrapper .ql-toolbar.ql-snow button:hover .ql-stroke,
+        .quill-editor-wrapper .ql-toolbar.ql-snow button:focus .ql-stroke,
+        .quill-editor-wrapper .ql-toolbar.ql-snow button.ql-active .ql-stroke,
+        .quill-editor-wrapper .ql-toolbar.ql-snow button:hover .ql-stroke-miter,
+        .quill-editor-wrapper .ql-toolbar.ql-snow button:focus .ql-stroke-miter,
+        .quill-editor-wrapper .ql-toolbar.ql-snow button.ql-active .ql-stroke-miter {
+            stroke: var(--accent-color);
+        }
+
+        .quill-editor-wrapper .ql-toolbar.ql-snow button:hover .ql-fill,
+        .quill-editor-wrapper .ql-toolbar.ql-snow button:focus .ql-fill,
+        .quill-editor-wrapper .ql-toolbar.ql-snow button.ql-active .ql-fill,
+        .quill-editor-wrapper .ql-toolbar.ql-snow button:hover .ql-stroke.ql-fill,
+        .quill-editor-wrapper .ql-toolbar.ql-snow button:focus .ql-stroke.ql-fill,
+        .quill-editor-wrapper .ql-toolbar.ql-snow button.ql-active .ql-stroke.ql-fill {
+            fill: var(--accent-color);
+        }
+
+        .quill-editor-wrapper .ql-snow a {
+            color: var(--accent-color);
+        }
+
+        .quill-editor-wrapper .ql-snow .ql-tooltip {
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-md);
+            color: var(--text-color);
+            font-family: inherit;
+            padding: var(--space-2) var(--space-4);
+        }
+
+        .quill-editor-wrapper .ql-snow .ql-tooltip input[type="text"] {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+        }
+
+        .week-card input:not([type="checkbox"]):not([type="radio"]):not(.week-heading-input),
+        .week-card select,
+        .week-card textarea:not(.staff-notes-textarea) {
+            width: 100%;
+            padding: var(--space-2) var(--space-3);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            background-color: var(--input-bg);
+        }
+
+        .week-card textarea:not(.staff-notes-textarea) {
+            min-height: 102px;
+            resize: vertical;
+        }
+
+        .staff-notes-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: var(--space-2);
+            border: 1.5px dashed var(--border-color);
+            border-radius: var(--radius-sm);
+            background: transparent;
+            font-family: inherit;
+            font-size: var(--font-sm);
+            color: var(--text-muted);
+            resize: vertical;
+        }
+
+        .week-meta textarea.week-card-textarea.evidence-note-textarea {
+            width: 100%;
+            min-height: 50px;
+            padding: var(--space-2);
+            border: 1.5px dashed var(--border-color);
+            border-radius: var(--radius-sm);
+            background: transparent;
+            font-family: inherit;
+            font-size: var(--font-sm);
+            color: var(--text-muted);
+            resize: vertical;
+            margin-top: var(--space-1);
+        }
+
+        .staff-notes-caption {
+            font-size: var(--font-xs);
+            color: var(--text-muted);
+            font-style: italic;
+            margin-top: var(--space-1);
+        }
+
+        .week-export-caption {
+            font-size: var(--font-xs);
+            color: var(--text-muted);
+            font-style: italic;
+            margin-top: var(--space-1);
+        }
+
+        .week-heading-input {
+            display: block;
+            width: auto;
+            max-width: 100%;
+            margin: var(--space-3) 0 var(--space-1) -5px;
+            padding: 2px 5px;
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            background: transparent;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: var(--font-xs);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: text;
+            transition: background-color var(--transition-fast), border-color var(--transition-fast);
+        }
+
+        .week-heading-input:hover {
+            background: var(--panel-tint);
+        }
+
+        .week-heading-input:focus {
+            outline: none;
+            background: var(--input-bg);
+            border-color: var(--accent-color);
+            box-shadow: var(--focus-ring);
+        }
+
+        .week-meta textarea.week-card-textarea {
+            width: 100%;
+            padding: var(--space-2);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            margin-top: var(--space-2);
+            font-family: inherit;
+            font-size: var(--font-sm);
+            resize: vertical;
+        }
+
+        .checklist {
+            list-style-type: none;
+            display: grid;
+            gap: var(--space-2);
+        }
+
+        .checklist li label {
+            display: flex;
+            align-items: center;
+            margin-top: 0;
+            margin-bottom: 0;
+            font-weight: 500;
+        }
+
+        .checklist li label input[type="checkbox"] {
+            margin-right: var(--space-2);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.58);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity var(--transition-slow), visibility var(--transition-slow);
+        }
+
+        .modal-overlay.visible {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: var(--surface-color);
+            padding: var(--space-7);
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 820px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-content h4 {
+            font-size: var(--font-md);
+            margin-bottom: var(--space-3);
+            color: var(--primary-color);
+        }
+
+        .modal-content textarea {
+            width: 100%;
+            flex-grow: 1;
+            min-height: 400px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: var(--space-3);
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: var(--font-sm);
+            resize: none;
+            margin-bottom: var(--space-3);
+            background: var(--panel-tint);
+        }
+
+        .history-modal-content {
+            max-width: 520px;
+        }
+
+        .changelog-add-row {
+            display: flex;
+            gap: var(--space-2);
+            margin-bottom: var(--space-4);
+        }
+
+        .changelog-add-row input[type="text"] {
+            flex: 1 1 auto;
+            padding: var(--space-2) var(--space-3);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            background-color: var(--input-bg);
+        }
+
+        .changelog-add-row button {
+            padding: var(--space-2) var(--space-4);
+            border: none;
+            border-radius: var(--radius-sm);
+            background: var(--accent-color);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .changelog-list {
+            list-style: none;
+            display: grid;
+            gap: var(--space-2);
+            overflow-y: auto;
+            max-height: 50vh;
+        }
+
+        .changelog-entry {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-1);
+            padding: var(--space-2) var(--space-3);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--panel-tint);
+        }
+
+        .changelog-timestamp {
+            font-size: var(--font-xs);
+            color: var(--text-muted);
+        }
+
+        .changelog-empty {
+            color: var(--text-muted);
+            font-size: var(--font-sm);
+        }
+
+        @media (max-width: 980px) {
+            .content-area {
+                padding: var(--space-4);
+            }
+
+            .content-area.drawer-open {
+                margin-left: 0;
+            }
+
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .week-card-body {
+                flex-direction: column;
+            }
+
+            .week-meta {
+                flex-basis: auto;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="app-bar">
+        <h1>Syllabuild</h1>
+        <div class="controls">
+            <button id="save-button">Save</button>
+            <button id="load-button">Load</button>
+            <button id="history-button">History</button>
+            <button id="export-word-button">Export to Word</button>
+            <button id="export-calendar-button">Export Calendar</button>
+            <button id="toggle-drawer">Configure</button>
+        </div>
+    </header>
+
+    <aside id="config-drawer" class="drawer">
+        <form id="config-form">
+            <fieldset>
+                <legend>Registry</legend>
+                <label for="unit-code">Unit Code</label>
+                <input type="text" id="unit-code" name="unitCode" placeholder="e.g., ABC101">
+                <label for="unit-title">Unit Title</label>
+                <input type="text" id="unit-title" name="unitTitle" placeholder="e.g., Introduction to...">
+                <label for="module-leader">Module Leader</label>
+                <input type="text" id="module-leader" name="moduleLeader">
+                <label for="term-semester">Term / Semester</label>
+                <input type="text" id="term-semester" name="termSemester" placeholder="e.g., Autumn 2026">
+                
+                <label style="margin-top: var(--space-3);">Start Date</label>
+                <div class="date-option-group">
+                    <label><input type="radio" name="dateSource" value="mmu" checked> MMU Calendar</label>
+                    <label><input type="radio" name="dateSource" value="custom"> Custom Date</label>
+                </div>
+
+                <div id="mmu-calendar-selector">
+                    <select id="mmu-term" name="mmuTerm" class="drawer-select"></select>
+                </div>
+                <div id="custom-date-selector" class="hidden">
+                    <input type="date" id="start-date" name="startDate">
+                </div>
+
+                <label>Meeting Days</label>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" name="meeting-day-mon" value="true"> Mon</label> <label><input type="checkbox" name="meeting-day-tue" value="true"> Tue</label> <label><input type="checkbox" name="meeting-day-wed" value="true"> Wed</label> <label><input type="checkbox" name="meeting-day-thu" value="true"> Thu</label> <label><input type="checkbox" name="meeting-day-fri" value="true"> Fri</label>
+                </div>
+            </fieldset>
+            <fieldset>
+                <legend>Description</legend>
+                <textarea id="module-description" name="moduleDescription" placeholder="A brief overview of the module's aims and content..."></textarea>
+                <label for="reading-list-url" style="margin-top: var(--space-3);">Reading List Link</label>
+                <input type="url" id="reading-list-url" name="readingListUrl" placeholder="https://...">
+                <label for="moodle-url" style="margin-top: var(--space-3);">Moodle Course Link</label>
+                <input type="url" id="moodle-url" name="moodleUrl" placeholder="https://moodle...">
+            </fieldset>
+            <fieldset>
+                <legend>Structure</legend>
+                <label for="academic-level">Academic Level</label>
+                <input type="number" id="academic-level" name="academicLevel" value="4" min="3" max="8">
+                <label for="credit-size">Credit Size</label>
+                <input type="number" id="credit-size" name="creditSize" value="20" required min="0">
+                <label for="teaching-weeks">Teaching Weeks</label>
+                <input type="number" id="teaching-weeks" name="teachingWeeks" value="12" required min="1">
+            </fieldset>
+            <fieldset>
+                <legend>Compliance (Optional)</legend>
+                <label class="checkbox-group-label"><input type="checkbox" name="deltaCompliance"> DELTA (Digital Education) reviewed</label>
+                <label class="checkbox-group-label"><input type="checkbox" name="ripiagCompliance"> RIPIAG (Racially Inclusive Practice in Assessment Guidance) reviewed</label>
+            </fieldset>
+            <fieldset>
+                <legend>Contact Hours (per week)</legend>
+                <label for="lecture-hours">Lecture</label>
+                <input type="number" id="lecture-hours" name="lecture" value="1" step="0.5" min="0">
+                <label for="workshop-hours">Workshop</label>
+                <input type="number" id="workshop-hours" name="workshop" value="1" step="0.5" min="0">
+                <label for="seminar-hours">Seminar</label>
+                <input type="number" id="seminar-hours" name="seminar" value="0" step="0.5" min="0">
+                <label for="tutorial-hours">Tutorial</label>
+                <input type="number" id="tutorial-hours" name="tutorial" value="0" step="0.5" min="0">
+            </fieldset>
+        </form>
+    </aside>
+
+    <main id="main-content" class="content-area">
+        <section id="dashboard" class="dashboard">
+            <div class="dashboard-item">
+                <div id="total-notional-hours" class="value">0</div>
+                <div class="label">Total Notional Hours</div>
+            </div>
+            <div class="dashboard-item">
+                <div id="total-contact-hours" class="value">0</div>
+                <div class="label">Total Contact Hours</div>
+            </div>
+            <div class="dashboard-item">
+                <div id="independent-study-hours" class="value">0</div>
+                <div class="label">Suggested Independent Study</div>
+            </div>
+        </section>
+
+        <section id="dashboard-summary" class="dashboard-summary">
+            <div class="dashboard-item">
+                <div id="summary-prepared" class="value">0 / 0</div>
+                <div class="label">Weeks Prepared</div>
+            </div>
+            <div class="dashboard-item">
+                <div id="summary-unpublished" class="value">0</div>
+                <div class="label">Unpublished</div>
+            </div>
+            <div class="dashboard-item">
+                <div id="summary-at-risk" class="value">0</div>
+                <div class="label">External Factors</div>
+            </div>
+            <div class="dashboard-item">
+                <div id="summary-assessment-points" class="value">0</div>
+                <div class="label">Assessment Points</div>
+            </div>
+            <div class="dashboard-item">
+                <div id="summary-changed-since-export" class="value">0</div>
+                <div class="label">Changed Since Export</div>
+            </div>
+        </section>
+
+        <section id="syllabus-header" class="syllabus-header">
+            <h2 id="header-unit-title">[Unit Title]</h2>
+            <p id="header-unit-meta" class="unit-meta"></p>
+            <div id="header-module-leader" class="leader-info">[Module Leader: Not Assigned]</div>
+            <p id="header-module-description">[Module Description]</p>
+            <p id="header-reading-list" class="hidden"></p>
+            <p id="header-moodle-link" class="hidden"></p>
+        </section>
+
+        <section id="workspace" class="workspace">
+            <!-- Weekly cards will be generated here by JavaScript -->
+        </section>
+    </main>
+
+    <div id="export-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h4>Generated Moodle HTML</h4>
+            <textarea id="export-output" readonly></textarea>
+            <button id="copy-code-button">Copy to Clipboard</button>
+            <button id="close-modal-button" style="margin-top: var(--space-3);">Close</button>
+        </div>
+    </div>
+
+    <div id="history-modal" class="modal-overlay">
+        <div class="modal-content history-modal-content">
+            <h4>History</h4>
+            <div class="changelog-add-row">
+                <input type="text" id="changelog-note-input" placeholder="Add a note...">
+                <button type="button" id="changelog-add-button">Add entry</button>
+            </div>
+            <ul id="changelog-list" class="changelog-list"></ul>
+            <button type="button" id="history-close-button" style="margin-top: var(--space-3);">Close</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // --- DOM Element References ---
+            const toggleButton = document.getElementById('toggle-drawer');
+            const drawer = document.getElementById('config-drawer');
+            const mainContent = document.getElementById('main-content');
+            const configForm = document.getElementById('config-form');
+            const workspace = document.getElementById('workspace');
+            const saveButton = document.getElementById('save-button');
+            const loadButton = document.getElementById('load-button');
+            const historyButton = document.getElementById('history-button');
+            const exportWordButton = document.getElementById('export-word-button');
+            const exportCalendarButton = document.getElementById('export-calendar-button');
+
+            // --- UI Interaction ---
+            toggleButton.addEventListener('click', () => {
+                drawer.classList.toggle('open');
+                mainContent.classList.toggle('drawer-open');
+            });
+
+            function escapeHtml(str) {
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            // One-directional, staff-only text extraction (e.g. migrating an old rich-text
+            // field's content into a plain-text one) - not for anything export-facing.
+            function stripHtml(html) {
+                const div = document.createElement('div');
+                div.innerHTML = html;
+                return div.textContent || '';
+            }
+
+            // --- Rich Text Editors (Quill WYSIWYG instances, keyed by their hidden input's id) ---
+            const quillInstances = {};
+
+            const richTextManager = {
+                QUILL_OPTIONS: {
+                    theme: 'snow',
+                    modules: {
+                        toolbar: [['bold', 'italic', 'link'], [{ list: 'ordered' }, { list: 'bullet' }]]
+                    }
+                },
+                initAll() {
+                    Object.keys(quillInstances).forEach((key) => delete quillInstances[key]);
+
+                    workspace.querySelectorAll('.quill-editor-wrapper').forEach((wrapper) => {
+                        const targetId = wrapper.dataset.target;
+                        const hiddenInput = document.getElementById(targetId);
+                        const mount = wrapper.firstElementChild;
+                        if (!hiddenInput || !mount) return;
+
+                        const quill = new Quill(mount, {
+                            ...this.QUILL_OPTIONS,
+                            placeholder: wrapper.dataset.placeholder || ''
+                        });
+                        if (hiddenInput.value) {
+                            quill.clipboard.dangerouslyPasteHTML(hiddenInput.value);
+                        }
+                        quill.on('text-change', (delta, oldDelta, source) => {
+                            hiddenInput.value = quill.root.innerHTML;
+                            if (source === 'user') {
+                                hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+                            }
+                        });
+
+                        quillInstances[targetId] = quill;
+                    });
+                },
+                setContent(targetId, html) {
+                    const quill = quillInstances[targetId];
+                    if (quill) {
+                        quill.clipboard.dangerouslyPasteHTML(html || '');
+                    }
+                }
+            };
+
+            // --- Export Sanitizer (allowlists the tags Quill's restricted toolbar can produce) ---
+            const RICH_TEXT_ALLOWED_TAGS = new Set(['P', 'B', 'STRONG', 'I', 'EM', 'UL', 'OL', 'LI', 'BR', 'A']);
+            const SAFE_LINK_SCHEME = /^(https?:|mailto:)/i;
+
+            function isRichTextEmpty(html) {
+                if (!html) return true;
+                return html.replace(/<\/?(p|br)[^>]*>/gi, '').trim() === '';
+            }
+
+            // Quill 2 always wraps list items in <ol>, marking bullet vs ordered via
+            // data-list="bullet"/"ordered" on each <li> instead of the wrapper tag.
+            // Split runs of same-type items back into real <ul>/<ol> elements before sanitizing.
+            function normalizeQuillLists(root) {
+                const doc = root.ownerDocument;
+                Array.from(root.querySelectorAll('ol')).forEach((ol) => {
+                    const items = Array.from(ol.children).filter((el) => el.tagName === 'LI');
+                    if (!items.length) return;
+
+                    let currentWrapper = null;
+                    let currentType = null;
+                    items.forEach((li) => {
+                        const type = li.getAttribute('data-list') === 'bullet' ? 'ul' : 'ol';
+                        if (type !== currentType) {
+                            currentWrapper = doc.createElement(type);
+                            ol.parentNode.insertBefore(currentWrapper, ol);
+                            currentType = type;
+                        }
+                        currentWrapper.appendChild(li);
+                    });
+                    ol.remove();
+                });
+            }
+
+            function sanitizeRichText(raw) {
+                if (!raw) return '';
+
+                const withBreaks = raw.replace(/\r\n|\r|\n/g, '<br>');
+                const parsed = new DOMParser().parseFromString(`<div>${withBreaks}</div>`, 'text/html');
+                const root = parsed.body.firstChild;
+
+                normalizeQuillLists(root);
+
+                (function clean(node) {
+                    Array.from(node.childNodes).forEach((child) => {
+                        if (child.nodeType === Node.ELEMENT_NODE) {
+                            if (!RICH_TEXT_ALLOWED_TAGS.has(child.tagName)) {
+                                while (child.firstChild) {
+                                    node.insertBefore(child.firstChild, child);
+                                }
+                                node.removeChild(child);
+                                return;
+                            }
+
+                            if (child.tagName === 'A') {
+                                const href = (child.getAttribute('href') || '').trim();
+                                Array.from(child.attributes).forEach((attr) => child.removeAttribute(attr.name));
+                                if (SAFE_LINK_SCHEME.test(href)) {
+                                    child.setAttribute('href', href);
+                                    child.setAttribute('target', '_blank');
+                                    child.setAttribute('rel', 'noopener noreferrer');
+                                }
+                            } else {
+                                Array.from(child.attributes).forEach((attr) => child.removeAttribute(attr.name));
+                            }
+                            clean(child);
+                        } else if (child.nodeType !== Node.TEXT_NODE) {
+                            node.removeChild(child);
+                        }
+                    });
+                })(root);
+
+                return root.innerHTML;
+            }
+
+            // --- Hard-coded Academic Calendar Data ---
+            // Based on the provided 'Academic Calendar 26-27.xlsx' data
+            const ACADEMIC_CALENDAR = {
+                'autumn-2026': { label: 'Autumn 2026 (Teaching Starts)', date: '2026-10-05' },
+                'spring-2027': { label: 'Spring 2027 (Teaching Starts)', date: '2027-02-01' },
+                'summer-2027': { label: 'Summer 2027 (Teaching Starts)', date: '2027-04-12' },
+                'autumn-2027': { label: 'Autumn 2027 (Teaching Starts)', date: '2027-10-04' },
+            };
+
+            // --- Date Utilities ---
+            const dateUtils = {
+                getWeekStartDateObject(baseDateStr, weekNumber) {
+                    if (!baseDateStr) return null;
+
+                    const baseDate = new Date(baseDateStr);
+                    const adjustedDate = new Date(baseDate.valueOf() + baseDate.getTimezoneOffset() * 60 * 1000);
+                    adjustedDate.setDate(adjustedDate.getDate() + (weekNumber - 1) * 7);
+
+                    return adjustedDate;
+                },
+                getWeekStartDate(baseDateStr, weekNumber) {
+                    const date = this.getWeekStartDateObject(baseDateStr, weekNumber);
+                    if (!date) return '';
+
+                    return date.toLocaleDateString('en-GB', {
+                        weekday: 'short', day: 'numeric', month: 'short'
+                    });
+                }
+            };
+
+            // --- Export Drift Tracking Helpers ---
+            // A week's "changed since export" state is derived from state.meta.weekMeta,
+            // never stored as its own flag, so it can't drift out of sync with the timestamps.
+            function getWeekNumberFromEventTarget(el) {
+                const source = el.id || el.getAttribute('name') || '';
+                const match = source.match(/^week-(\d+)-/);
+                return match ? match[1] : null;
+            }
+
+            function getWeekMeta(weekNumber) {
+                if (!state.meta.weekMeta[weekNumber]) {
+                    state.meta.weekMeta[weekNumber] = { lastModifiedAt: null, lastExportedAt: null };
+                }
+                return state.meta.weekMeta[weekNumber];
+            }
+
+            function isWeekStale(weekNumber) {
+                const meta = state.meta.weekMeta[weekNumber];
+                if (!meta || !meta.lastModifiedAt) return true;
+                if (!meta.lastExportedAt) return true;
+                return meta.lastModifiedAt > meta.lastExportedAt;
+            }
+
+            function weekHasContent(weekNumber) {
+                const topic = (document.getElementById(`week-${weekNumber}-topic`)?.value || '').trim();
+                if (topic) return true;
+                const focus = sanitizeRichText(document.getElementById(`week-${weekNumber}-focus`)?.value);
+                if (!isRichTextEmpty(focus)) return true;
+                const reading = sanitizeRichText(document.getElementById(`week-${weekNumber}-reading`)?.value);
+                return !isRichTextEmpty(reading);
+            }
+
+            // --- State Management ---
+            const state = {
+                // In-memory only; persisted into/restored from the .syllabuild JSON
+                // alongside the form fields (see getFormData/setFormData below).
+                meta: {
+                    changelog: [],
+                    weekMeta: {}
+                },
+                getFormData() {
+                    const formData = new FormData(configForm);
+                    const data = Object.fromEntries(formData.entries());
+                    const weeklyData = this.getWeeklyData();
+                    return { ...data, ...weeklyData, meta: this.meta };
+                },
+                getWeeklyData() {
+                    const weeklyData = {};
+
+                    workspace.querySelectorAll('input, textarea, select').forEach((element) => {
+                        const name = element.getAttribute('name');
+                        if (!name || !name.startsWith('week-')) {
+                            return;
+                        }
+
+                        weeklyData[name] = element.type === 'checkbox'
+                            ? (element.checked ? 'true' : '')
+                            : element.value;
+                    });
+
+                    return weeklyData;
+                },
+                setFormData(data) {
+                    // Clear all existing inputs
+                    configForm.reset();
+
+                    for (const key in data) {
+                        if (Object.prototype.hasOwnProperty.call(data, key)) {
+                            const element = configForm.elements[key];
+                            if (element) {
+                                if (element.type === 'checkbox') {
+                                    element.checked = !!data[key];
+                                } else {
+                                    element.value = data[key];
+                                }
+                            }
+                        }
+                    }
+
+                    // Restore versioning/changelog + export-drift metadata, defaulting
+                    // to empty structures for files saved before this feature existed.
+                    const meta = data.meta || {};
+                    this.meta = {
+                        changelog: Array.isArray(meta.changelog) ? meta.changelog : [],
+                        weekMeta: (meta.weekMeta && typeof meta.weekMeta === 'object') ? meta.weekMeta : {}
+                    };
+
+                    // One-time migration: the old free-text "Assessment Alignment" field was
+                    // replaced by structured assessment-type/date fields. Fold any old
+                    // content into Staff Notes rather than silently discarding it.
+                    const migrationWeekCount = Math.min(parseInt(data.teachingWeeks, 10) || 0, 52);
+                    for (let i = 1; i <= migrationWeekCount; i++) {
+                        const oldKey = `week-${i}-assessment-alignment`;
+                        const rawAlignment = data[oldKey];
+                        if (!rawAlignment) continue;
+
+                        const plainText = stripHtml(rawAlignment).trim();
+                        if (plainText) {
+                            const staffNotesKey = `week-${i}-staff-notes`;
+                            const migratedNote = `[Migrated assessment note] ${plainText}`;
+                            data[staffNotesKey] = data[staffNotesKey]
+                                ? `${data[staffNotesKey]}\n${migratedNote}`
+                                : migratedNote;
+                        }
+                        delete data[oldKey];
+                    }
+
+                    // After setting data, we need to regenerate the workspace and then fill it
+                    workspaceManager.generateWeeks(data);
+                    workspaceManager.populateWeeks(data);
+
+                    unsavedChangesManager.markClean();
+                }
+            };
+
+            // --- Workload Calculation Engine ---
+            const calculator = {
+                update() {
+                    const data = state.getFormData();
+                    const creditSize = parseFloat(data.creditSize) || 0;
+                    const teachingWeeks = parseFloat(data.teachingWeeks) || 0;
+                    const lecture = parseFloat(data.lecture) || 0;
+                    const workshop = parseFloat(data.workshop) || 0;
+                    const seminar = parseFloat(data.seminar) || 0;
+                    const tutorial = parseFloat(data.tutorial) || 0;
+
+                    // 1 credit = 10 notional learning hours
+                    const totalNotionalHours = creditSize * 10;
+                    const weeklyContactHours = lecture + workshop + seminar + tutorial;
+                    const totalContactHours = weeklyContactHours * teachingWeeks;
+                    const independentStudy = totalNotionalHours - totalContactHours;
+
+                    this.displayResults({ totalNotionalHours, totalContactHours, independentStudy });
+                },
+
+                displayResults({ totalNotionalHours, totalContactHours, independentStudy }) {
+                    document.getElementById('total-notional-hours').textContent = totalNotionalHours.toFixed(0);
+                    document.getElementById('total-contact-hours').textContent = totalContactHours.toFixed(0);
+                    document.getElementById('independent-study-hours').textContent = independentStudy.toFixed(0);
+                }
+            };
+
+            // --- Syllabus Header Manager ---
+            const syllabusHeaderManager = {
+                update() {
+                    const data = state.getFormData();
+                    const titleEl = document.getElementById('header-unit-title');
+                    const metaEl = document.getElementById('header-unit-meta');
+                    const descriptionEl = document.getElementById('header-module-description');
+                    const leaderEl = document.getElementById('header-module-leader');
+                    const readingListEl = document.getElementById('header-reading-list');
+                    const moodleLinkEl = document.getElementById('header-moodle-link');
+
+                    const unitTitle = data.unitTitle || '[Unit Title]';
+                    const moduleDescription = data.moduleDescription || '[Module Description]';
+                    const moduleLeader = data.moduleLeader;
+                    const creditSize = data.creditSize || '0';
+                    const academicLevel = data.academicLevel || '0';
+                    const readingListUrl = (data.readingListUrl || '').trim();
+                    const moodleUrl = (data.moodleUrl || '').trim();
+
+                    if (titleEl) titleEl.textContent = unitTitle;
+                    if (metaEl) metaEl.textContent = `A ${creditSize} credit unit at Level ${academicLevel}`;
+                    if (leaderEl) leaderEl.textContent = moduleLeader ? `Module Leader: ${moduleLeader}` : 'Module Leader: [Not Assigned]';
+                    if (descriptionEl) descriptionEl.textContent = moduleDescription;
+
+                    if (readingListEl) {
+                        if (SAFE_LINK_SCHEME.test(readingListUrl)) {
+                            readingListEl.innerHTML = `Reading List: <a href="${escapeHtml(readingListUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(readingListUrl)}</a>`;
+                            readingListEl.classList.remove('hidden');
+                        } else {
+                            readingListEl.innerHTML = '';
+                            readingListEl.classList.add('hidden');
+                        }
+                    }
+
+                    if (moodleLinkEl) {
+                        if (SAFE_LINK_SCHEME.test(moodleUrl)) {
+                            moodleLinkEl.innerHTML = `Moodle: <a href="${escapeHtml(moodleUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(moodleUrl)}</a>`;
+                            moodleLinkEl.classList.remove('hidden');
+                        } else {
+                            moodleLinkEl.innerHTML = '';
+                            moodleLinkEl.classList.add('hidden');
+                        }
+                    }
+                }
+            };
+
+            // --- Dashboard Summary Manager ---
+            // Always derived live from the rendered week tabs/fields, never a
+            // separate data model, so it can't drift out of sync with the DOM.
+            const dashboardSummaryManager = {
+                update() {
+                    const tabs = Array.from(workspace.querySelectorAll('.week-tab'));
+                    const totalWeeks = tabs.length;
+
+                    const preparedCount = tabs.filter((tab) => tab.classList.contains('completed')).length;
+                    const atRiskCount = tabs.filter((tab) => tab.classList.contains('external-factor')).length;
+                    // Only weeks with actual content can ever be "exported" in the first
+                    // place - an untouched blank week would otherwise be stale forever.
+                    const staleCount = tabs.filter((tab) => {
+                        const weekNumber = tab.dataset.week;
+                        return weekHasContent(weekNumber) && isWeekStale(weekNumber);
+                    }).length;
+
+                    const unpublishedCount = tabs.filter((tab) => {
+                        const checkbox = document.querySelector(`input[name="week-${tab.dataset.week}-published"]`);
+                        return !(checkbox && checkbox.checked);
+                    }).length;
+
+                    const assessmentCount = tabs.filter((tab) => {
+                        const typeSelect = document.getElementById(`week-${tab.dataset.week}-assessment-type`);
+                        return typeSelect && typeSelect.value !== 'none';
+                    }).length;
+
+                    this.displayResults({ totalWeeks, preparedCount, unpublishedCount, atRiskCount, assessmentCount, staleCount });
+                },
+                displayResults({ totalWeeks, preparedCount, unpublishedCount, atRiskCount, assessmentCount, staleCount }) {
+                    const setText = (id, text) => {
+                        const el = document.getElementById(id);
+                        if (el) el.textContent = text;
+                    };
+
+                    setText('summary-prepared', `${preparedCount} / ${totalWeeks}`);
+                    setText('summary-unpublished', String(unpublishedCount));
+                    setText('summary-at-risk', String(atRiskCount));
+                    setText('summary-assessment-points', String(assessmentCount));
+                    setText('summary-changed-since-export', String(staleCount));
+
+                    // Single consolidated indicator instead of a badge on every week tab
+                    exportWordButton.classList.toggle('has-pending-changes', staleCount > 0);
+                    exportWordButton.title = staleCount > 0
+                        ? `${staleCount} week${staleCount === 1 ? '' : 's'} changed since last export`
+                        : '';
+                }
+            };
+
+            // --- Workspace Manager ---
+            const workspaceManager = {
+                generateWeeks(existingData = {}) {
+                    // Always get the absolute latest form data at the moment of generation
+                    const data = state.getFormData();
+                    const teachingWeeks = parseInt(data.teachingWeeks, 10) || 0;
+                    const activeWeek = this.getActiveWeek();
+                    
+                    if (teachingWeeks <= 0 || teachingWeeks > 52) {
+                        workspace.innerHTML = '<div class="week-timeline"></div><div class="week-content-area"><p>Please set a number of teaching weeks between 1 and 52.</p></div>';
+                        return;
+                    }
+
+                    let timelineHtml = '';
+                    let contentHtml = '';
+
+                    for (let i = 1; i <= teachingWeeks; i++) {
+                        const effectiveStartDate = data.dateSource === 'mmu' ? ACADEMIC_CALENDAR[data.mmuTerm]?.date : data.startDate;
+                        const weekDate = dateUtils.getWeekStartDate(effectiveStartDate, i);
+                        // Add a tab for each week to the timeline
+                        timelineHtml += `<div class="week-tab ${i === activeWeek ? 'active' : ''}" data-week="${i}">
+                            <span class="week-label">Week</span>
+                            <span class="week-number">${i}</span>
+                            ${weekDate ? `<span class="week-date">W/B: ${weekDate}</span>` : ''}
+                        </div>`;
+                        // Create the content card for each week
+                        contentHtml += this.createWeekCard(i, data);
+                    }
+                    // Assemble the new UI
+                    workspace.innerHTML = `<div class="week-timeline">${timelineHtml}</div><div class="week-content-area">${contentHtml}</div>`;
+                    richTextManager.initAll();
+                    this.updateWeekProgressStates();
+                },
+
+                createWeekCard(weekNumber, data) {
+                    const hasLectures = (parseFloat(data.lecture) || 0) > 0;
+                    const hasWorkshops = (parseFloat(data.workshop) || 0) > 0;
+                    const hasSeminars = (parseFloat(data.seminar) || 0) > 0;
+                    const hasTutorials = (parseFloat(data.tutorial) || 0) > 0;
+
+                    const activeWeek = this.getActiveWeek();
+                    const topic = data[`week-${weekNumber}-topic`] || '';
+                    const effectiveStartDate = data.dateSource === 'mmu' ? ACADEMIC_CALENDAR[data.mmuTerm]?.date : data.startDate;
+                    const weekDate = dateUtils.getWeekStartDate(effectiveStartDate, weekNumber);
+                    const initialTitle = `Week ${weekNumber}` + (topic ? `: ${escapeHtml(topic)}` : '');
+                    const focusLabel = data[`week-${weekNumber}-focus-label`] || 'Weekly Focus';
+                    const readingLabel = data[`week-${weekNumber}-reading-label`] || 'Extra Information';
+                    const staffNotes = data[`week-${weekNumber}-staff-notes`] || '';
+                    const assessmentType = data[`week-${weekNumber}-assessment-type`] || 'none';
+                    const assessmentDate = data[`week-${weekNumber}-assessment-date`] || '';
+
+                    const assessmentOptions = [
+                        ['none', 'None'],
+                        ['formative', 'Formative'],
+                        ['summative', 'Summative'],
+                        ['feedback-return', 'Feedback Return']
+                    ].map(([value, label]) => `<option value="${value}"${assessmentType === value ? ' selected' : ''}>${label}</option>`).join('');
+
+                    return `
+                        <div class="week-card ${weekNumber === activeWeek ? 'active' : 'hidden'}" id="week-${weekNumber}-card">
+                            <h4>${initialTitle}</h4>
+                            ${weekDate ? `<p class="week-card-date">W/B: ${weekDate}</p>` : ''}
+                            <div class="week-card-body">
+                                <div class="week-content">
+                                    <label for="week-${weekNumber}-topic">Topic / Theme</label>
+                                    <input type="text" id="week-${weekNumber}-topic" name="week-${weekNumber}-topic" value="${escapeHtml(topic)}">
+
+                                    <input type="text" class="week-heading-input" id="week-${weekNumber}-focus-label" name="week-${weekNumber}-focus-label" value="${escapeHtml(focusLabel)}" title="Click to rename this heading">
+                                    <div class="quill-editor-wrapper" data-target="week-${weekNumber}-focus">
+                                        <div id="week-${weekNumber}-focus-mount"></div>
+                                    </div>
+                                    <input type="hidden" id="week-${weekNumber}-focus" name="week-${weekNumber}-focus" value="${escapeHtml(data[`week-${weekNumber}-focus`] || '')}">
+
+                                    <input type="text" class="week-heading-input" id="week-${weekNumber}-reading-label" name="week-${weekNumber}-reading-label" value="${escapeHtml(readingLabel)}" title="Click to rename this heading">
+                                    <div class="quill-editor-wrapper" data-target="week-${weekNumber}-reading">
+                                        <div id="week-${weekNumber}-reading-mount"></div>
+                                    </div>
+                                    <input type="hidden" id="week-${weekNumber}-reading" name="week-${weekNumber}-reading" value="${escapeHtml(data[`week-${weekNumber}-reading`] || '')}">
+                                </div>
+                                <div class="week-meta">
+                                    <h5>Management</h5>
+                                    <ul class="checklist">
+                                        ${hasLectures ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-lecture"> Lectures prepared</label></li>` : ''}
+                                        ${hasWorkshops ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-workshop">Workshops prepared </label></li>` : ''}
+                                        ${hasSeminars ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-seminar"> Seminars prepared</label></li>` : ''}
+                                        ${hasTutorials ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-tutorial"> Tutorials prepared</label></li>` : ''}
+                                    </ul>
+                                    <label for="week-${weekNumber}-assessment-type" style="margin-top: var(--space-4);">Assessment Type</label>
+                                    <select id="week-${weekNumber}-assessment-type" name="week-${weekNumber}-assessment-type">${assessmentOptions}</select>
+                                    <input type="date" id="week-${weekNumber}-assessment-date" name="week-${weekNumber}-assessment-date" class="${assessmentType === 'none' ? 'hidden' : ''}" value="${escapeHtml(assessmentDate)}">
+                                    <ul class="checklist" style="margin-top: var(--space-4);">
+                                        <li>
+                                            <label><input type="checkbox" name="week-${weekNumber}-wil" ${data[`week-${weekNumber}-wil`] ? 'checked' : ''}> Work Informed Learning (WIL)</label>
+                                            <textarea id="week-${weekNumber}-wil-note" name="week-${weekNumber}-wil-note" class="week-card-textarea evidence-note-textarea" placeholder="Evidence note (optional)...">${escapeHtml(data[`week-${weekNumber}-wil-note`] || '')}</textarea>
+                                        </li>
+                                        <li>
+                                            <label><input type="checkbox" name="week-${weekNumber}-esd" ${data[`week-${weekNumber}-esd`] ? 'checked' : ''}> Education for Sustainable Development (ESD)</label>
+                                            <textarea id="week-${weekNumber}-esd-note" name="week-${weekNumber}-esd-note" class="week-card-textarea evidence-note-textarea" placeholder="Evidence note (optional)...">${escapeHtml(data[`week-${weekNumber}-esd-note`] || '')}</textarea>
+                                        </li>
+                                    </ul>
+                                    <ul class="checklist" style="margin-top: var(--space-4);">
+                                        <li>
+                                            <label><input type="checkbox" name="week-${weekNumber}-external-factor" onchange="this.closest('li').querySelector('textarea').classList.toggle('hidden', !this.checked)" ${data[`week-${weekNumber}-external-factor`] ? 'checked' : ''}> External Factor</label>
+                                            <textarea name="week-${weekNumber}-external-factor-notes" class="week-card-textarea ${!data[`week-${weekNumber}-external-factor`] ? 'hidden' : ''}" placeholder="e.g., Bank Holiday, Reading Week...">${data[`week-${weekNumber}-external-factor-notes`] || ''}</textarea>
+                                        </li>
+                                    </ul>
+                                    <label for="week-${weekNumber}-staff-notes" style="margin-top: var(--space-4);">Staff Notes</label>
+                                    <textarea id="week-${weekNumber}-staff-notes" name="week-${weekNumber}-staff-notes" class="staff-notes-textarea" placeholder="Private notes for yourself...">${escapeHtml(staffNotes)}</textarea>
+                                    <p class="staff-notes-caption">Not included in exports</p>
+                                    <ul class="checklist" style="margin-top: var(--space-4);">
+                                        <li>
+                                            <label><input type="checkbox" name="week-${weekNumber}-published" ${data[`week-${weekNumber}-published`] ? 'checked' : ''}> Published to Moodle</label>
+                                        </li>
+                                    </ul>
+                                    <div class="week-export-section">
+                                        <button type="button" class="export-week-button" data-week="${weekNumber}">Export Week HTML</button>
+                                        <p class="week-export-caption">Cut and paste the HTML into a VLE Text And Media area</p>
+                                        <textarea id="week-${weekNumber}-export" style="display: none; width: 100%; margin-top: var(--space-3); min-height: 150px; font-family: monospace; font-size: var(--font-xs);" readonly></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                },
+                populateWeeks(data) {
+                    const teachingWeeks = parseInt(data.teachingWeeks, 10) || 0;
+                    if (teachingWeeks <= 0 || teachingWeeks > 52) return;
+
+                    for (let i = 1; i <= teachingWeeks; i++) {
+                        const weekPrefix = `week-${i}-`;
+                        const topicInput = document.getElementById(`${weekPrefix}topic`);
+                        const focusInput = document.getElementById(`${weekPrefix}focus`);
+                        const readingInput = document.getElementById(`${weekPrefix}reading`);
+                        const focusLabelInput = document.getElementById(`${weekPrefix}focus-label`);
+                        const readingLabelInput = document.getElementById(`${weekPrefix}reading-label`);
+                        const staffNotesInput = document.getElementById(`${weekPrefix}staff-notes`);
+                        const assessmentTypeSelect = document.getElementById(`${weekPrefix}assessment-type`);
+                        const assessmentDateInput = document.getElementById(`${weekPrefix}assessment-date`);
+
+                        if (topicInput) topicInput.value = data[`${weekPrefix}topic`] || '';
+                        if (focusInput) focusInput.value = data[`${weekPrefix}focus`] || '';
+                        if (readingInput) readingInput.value = data[`${weekPrefix}reading`] || '';
+                        if (focusLabelInput) focusLabelInput.value = data[`${weekPrefix}focus-label`] || 'Weekly Focus';
+                        if (readingLabelInput) readingLabelInput.value = data[`${weekPrefix}reading-label`] || 'Extra Information';
+                        if (staffNotesInput) staffNotesInput.value = data[`${weekPrefix}staff-notes`] || '';
+                        richTextManager.setContent(`${weekPrefix}focus`, data[`${weekPrefix}focus`]);
+                        richTextManager.setContent(`${weekPrefix}reading`, data[`${weekPrefix}reading`]);
+
+                        // Assessment tracking
+                        if (assessmentTypeSelect) {
+                            const assessmentType = data[`${weekPrefix}assessment-type`] || 'none';
+                            assessmentTypeSelect.value = assessmentType;
+                            if (assessmentDateInput) {
+                                assessmentDateInput.value = data[`${weekPrefix}assessment-date`] || '';
+                                assessmentDateInput.classList.toggle('hidden', assessmentType === 'none');
+                            }
+                        }
+
+                        // Checkboxes for prep checklist
+                        ['lecture', 'workshop', 'seminar', 'tutorial'].forEach(type => {
+                            const checkbox = document.querySelector(`[name="${weekPrefix}prep-${type}"]`);
+                            if (checkbox) {
+                                checkbox.checked = !!data[`${weekPrefix}prep-${type}`];
+                            }
+                        });
+                        // WIL / ESD checkboxes + evidence notes
+                        ['wil', 'esd'].forEach(type => {
+                            const checkbox = document.querySelector(`[name="${weekPrefix}${type}"]`);
+                            if (checkbox) {
+                                checkbox.checked = !!data[`${weekPrefix}${type}`];
+                            }
+                            const noteField = document.querySelector(`[name="${weekPrefix}${type}-note"]`);
+                            if (noteField) {
+                                noteField.value = data[`${weekPrefix}${type}-note`] || '';
+                            }
+                        });
+                        // Checkbox for published status
+                        const publishedCheckbox = document.querySelector(`[name="${weekPrefix}published"]`);
+                        if(publishedCheckbox) {
+                            publishedCheckbox.checked = !!data[`${weekPrefix}published`];
+                        }
+                        // External Factor
+                        const externalFactorCheckbox = document.querySelector(`[name="${weekPrefix}external-factor"]`);
+                        if(externalFactorCheckbox) {
+                            externalFactorCheckbox.checked = !!data[`${weekPrefix}external-factor`];
+                            externalFactorCheckbox.closest('li').querySelector('textarea').classList.toggle('hidden', !externalFactorCheckbox.checked);
+                        }
+                    }
+
+                    this.updateWeekProgressStates();
+                },
+                updateWeekProgressStates() {
+                    workspace.querySelectorAll('.week-tab').forEach((tab) => {
+                        const weekNumber = tab.dataset.week;
+                        const card = document.getElementById(`week-${weekNumber}-card`);
+                        if (!card) return;
+
+                        const externalFactorCheckbox = card.querySelector(`input[name="week-${weekNumber}-external-factor"]`);
+                        tab.classList.remove('pending', 'partial', 'completed', 'external-factor');
+
+                        if (externalFactorCheckbox && externalFactorCheckbox.checked) {
+                            tab.classList.add('external-factor'); // Red highlight takes precedence over prep progress
+                        } else {
+                            // Only these three drive the traffic light. A checkbox that doesn't exist
+                            // for this unit (e.g. no workshop hours configured) counts as satisfied,
+                            // not as a blocker - it was never a requirement for this unit in the first place.
+                            const lectureCheckbox = card.querySelector(`input[name="week-${weekNumber}-prep-lecture"]`);
+                            const workshopCheckbox = card.querySelector(`input[name="week-${weekNumber}-prep-workshop"]`);
+                            const publishedCheckbox = card.querySelector(`input[name="week-${weekNumber}-published"]`);
+
+                            const relevant = [lectureCheckbox, workshopCheckbox, publishedCheckbox].filter(Boolean);
+                            const satisfied = relevant.filter((checkbox) => checkbox.checked);
+
+                            if (relevant.length === 0 || satisfied.length === 0) {
+                                tab.classList.add('pending');
+                            } else if (satisfied.length === relevant.length) {
+                                tab.classList.add('completed');
+                            } else {
+                                tab.classList.add('partial');
+                            }
+                        }
+
+                        const assessmentType = document.getElementById(`week-${weekNumber}-assessment-type`)?.value;
+                        tab.classList.toggle('has-assessment', !!assessmentType && assessmentType !== 'none');
+                    });
+
+                    dashboardSummaryManager.update();
+                },
+                getActiveWeek() {
+                    const activeTab = workspace.querySelector('.week-tab.active');
+                    // Default to week 1 if no tab is active yet (e.g., on initial load)
+                    return activeTab ? parseInt(activeTab.dataset.week, 10) : 1;
+                }
+            };
+
+            // --- Versioning / Changelog Manager ---
+            const changelogManager = {
+                open() {
+                    this.renderList();
+                    document.getElementById('history-modal').classList.add('visible');
+                },
+                close() {
+                    document.getElementById('history-modal').classList.remove('visible');
+                },
+                addEntry(note) {
+                    const trimmed = (note || '').trim();
+                    if (!trimmed) return;
+                    this.addAutoEntry(trimmed);
+                    this.renderList();
+                },
+                addAutoEntry(note) {
+                    state.meta.changelog.push({ timestamp: new Date().toISOString(), note });
+                },
+                renderList() {
+                    const listEl = document.getElementById('changelog-list');
+                    if (!listEl) return;
+
+                    if (!state.meta.changelog.length) {
+                        listEl.innerHTML = '<li class="changelog-empty">No entries yet.</li>';
+                        return;
+                    }
+
+                    listEl.innerHTML = [...state.meta.changelog]
+                        .reverse()
+                        .map((entry) => `
+                            <li class="changelog-entry">
+                                <span class="changelog-timestamp">${escapeHtml(new Date(entry.timestamp).toLocaleString())}</span>
+                                <span class="changelog-note">${escapeHtml(entry.note)}</span>
+                            </li>
+                        `)
+                        .join('');
+                }
+            };
+
+            // --- Unsaved Changes Manager ---
+            // Document-level "anything changed since the last Save/Load" flag, distinct
+            // from the per-week export-drift tracking in weekMeta.
+            const unsavedChangesManager = {
+                hasChanges: false,
+                markDirty() {
+                    this.hasChanges = true;
+                    this.render();
+                },
+                markClean() {
+                    this.hasChanges = false;
+                    this.render();
+                },
+                render() {
+                    saveButton.classList.toggle('has-pending-changes', this.hasChanges);
+                    saveButton.title = this.hasChanges ? 'Unsaved changes' : '';
+                }
+            };
+
+            // --- File Management ---
+            const fileManager = {
+                save() {
+                    changelogManager.addAutoEntry('Saved');
+
+                    const data = state.getFormData();
+                    const unitCode = data.unitCode || 'Unit';
+                    const unitTitle = data.unitTitle || 'Syllabus';
+                    const filename = `${unitCode.replace(/ /g, '_')}_${unitTitle.replace(/ /g, '_')}.syllabuild`;
+
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+
+                    unsavedChangesManager.markClean();
+                },
+                load() {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.syllabuild,application/json';
+                    input.onchange = e => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+
+                        const reader = new FileReader();
+                        reader.onload = event => {
+                            try {
+                                const loadedData = JSON.parse(event.target.result);
+                                state.setFormData(loadedData);
+                                syllabusHeaderManager.update(); // Update header with loaded values
+                                calculator.update(); // Recalculate dashboard with loaded values
+                            } catch (error) {
+                                console.error("Error parsing .syllabuild file:", error);
+                                alert("Could not load file. It may be corrupted or in the wrong format.");
+                            }
+                        };
+                        reader.readAsText(file);
+                    };
+                    input.click();
+                }
+            };
+
+            const weeklyExportManager = {
+                generateForWeek(weekNumber) {
+                    const topic = document.getElementById(`week-${weekNumber}-topic`)?.value || `Week ${weekNumber}`;
+                    const focus = sanitizeRichText(document.getElementById(`week-${weekNumber}-focus`)?.value);
+                    const reading = sanitizeRichText(document.getElementById(`week-${weekNumber}-reading`)?.value);
+                    const focusLabel = document.getElementById(`week-${weekNumber}-focus-label`)?.value.trim() || 'Weekly Focus';
+                    const readingLabel = document.getElementById(`week-${weekNumber}-reading-label`)?.value.trim() || 'Extra Information';
+
+                    let html = `<h4>${escapeHtml(topic)}</h4>\n`;
+
+                    if (!isRichTextEmpty(focus)) {
+                        html += `<h5>${escapeHtml(focusLabel)}</h5>\n`;
+                        html += focus;
+                    }
+
+                    if (!isRichTextEmpty(reading)) {
+                        html += `<h5>${escapeHtml(readingLabel)}</h5>\n`;
+                        html += reading;
+                    }
+
+                    return html;
+                }
+            };
+
+            // --- Word Export Engine ---
+            // Whole-unit only - deliberately not called from weeklyExportManager.generateForWeek.
+            // Only weeks with a non-empty note are included; a ticked-but-blank week is omitted
+            // entirely rather than having a sentence fabricated for it.
+            function buildEvidenceSection(teachingWeeks, noteSuffix, heading) {
+                const entries = [];
+                for (let i = 1; i <= teachingWeeks; i++) {
+                    const note = (document.getElementById(`week-${i}-${noteSuffix}`)?.value || '').trim();
+                    if (!note) continue;
+                    const topic = (document.getElementById(`week-${i}-topic`)?.value || '').trim();
+                    entries.push({ weekNumber: i, topic, note });
+                }
+                if (!entries.length) return '';
+
+                const prose = entries
+                    .map(({ weekNumber, topic, note }) => {
+                        const weekLabel = topic ? `Week ${weekNumber} (${escapeHtml(topic)})` : `Week ${weekNumber}`;
+                        return `${weekLabel}: ${escapeHtml(note)}`;
+                    })
+                    .join(' ');
+
+                return `<h4>${heading}</h4><p>${prose}</p>`;
+            }
+
+            const wordExporter = {
+                generate() {
+                    const data = state.getFormData();
+                    const unitTitle = data.unitTitle || 'Unit Syllabus';
+                    const unitMeta = `A ${data.creditSize || '0'} credit unit at Level ${data.academicLevel || '0'}`;
+                    const moduleLeader = data.moduleLeader ? `Module Leader: ${data.moduleLeader}` : '';
+                    const moduleDescription = data.moduleDescription || '';
+                    const readingListUrl = (data.readingListUrl || '').trim();
+                    const readingListHtml = SAFE_LINK_SCHEME.test(readingListUrl)
+                        ? `<p><strong>Reading List:</strong> <a href="${escapeHtml(readingListUrl)}">${escapeHtml(readingListUrl)}</a></p>`
+                        : '';
+
+                    const complianceLines = [];
+                    if (data.deltaCompliance) complianceLines.push('DELTA (Digital Education) policy reviewed for this unit.');
+                    if (data.ripiagCompliance) complianceLines.push('RIPIAG (Racially Inclusive Practice in Assessment Guidance) reviewed for this unit.');
+                    const complianceHtml = complianceLines.length
+                        ? `<h3>Policy Compliance</h3><ul>${complianceLines.map(line => `<li>${line}</li>`).join('')}</ul><br/>`
+                        : '';
+
+                    let contentHtml = `
+                        <h1>${unitTitle}</h1>
+                        <p><strong>${unitMeta}</strong></p>
+                        <p><em>${moduleLeader}</em></p>
+                        <p>${moduleDescription}</p>
+                        ${readingListHtml}
+                        <br/>
+                        <h3>Workload Summary</h3>
+                        <table style="width:100%; border-collapse: collapse; border: 1px solid #dddddd;">
+                            <tr style="background-color: #f2f2f2;">
+                                <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">Total Notional Hours</th>
+                                <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">Total Contact Hours</th>
+                                <th style="border: 1px solid #dddddd; text-align: left; padding: 8px;">Suggested Independent Study</th>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">${document.getElementById('total-notional-hours').textContent}</td>
+                                <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">${document.getElementById('total-contact-hours').textContent}</td>
+                                <td style="border: 1px solid #dddddd; text-align: left; padding: 8px;">${document.getElementById('independent-study-hours').textContent}</td>
+                            </tr>
+                        </table>
+                        <br/>
+                        ${complianceHtml}
+                        <h3>Weekly Schedule</h3>
+                    `;
+
+                    const teachingWeeks = parseInt(data.teachingWeeks, 10) || 0;
+                    for (let i = 1; i <= teachingWeeks; i++) {
+                        const weeklyHtml = weeklyExportManager.generateForWeek(i);
+                        contentHtml += weeklyHtml.replace(/<h4>/g, '<h4>').replace(/<h5>/g, '<h5>');
+
+                        // The Word export covers the whole document in one go, so every
+                        // week with actual content counts as exported "now".
+                        if (weekHasContent(i)) {
+                            getWeekMeta(i).lastExportedAt = new Date().toISOString();
+                        }
+                    }
+
+                    const wilSection = buildEvidenceSection(teachingWeeks, 'wil-note', 'Work Informed Learning (WIL)');
+                    const esdSection = buildEvidenceSection(teachingWeeks, 'esd-note', 'Education for Sustainable Development (ESD)');
+                    const evidenceHtml = (wilSection || esdSection)
+                        ? `<br/><h3>Pedagogical Evidence</h3>${wilSection}${esdSection}`
+                        : '';
+                    contentHtml += evidenceHtml;
+
+                    workspaceManager.updateWeekProgressStates();
+
+                    const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${unitTitle}</title></head><body>${contentHtml}</body></html>`;
+                    const blob = htmlDocx.asBlob(fullHtml);
+
+                    const filename = `${(data.unitCode || 'Syllabus').replace(/ /g, '_')}.docx`;
+                    saveAs(blob, filename);
+                }
+            };
+
+            // --- Calendar (.ics) Export Helpers ---
+            // RFC 5545 basics only (no line-folding) - Outlook and every other
+            // mainstream calendar client tolerates un-folded lines this short.
+            function toIcsDate(date) {
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, '0');
+                const d = String(date.getDate()).padStart(2, '0');
+                return `${y}${m}${d}`;
+            }
+
+            function toIcsDateTime(date) {
+                return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+            }
+
+            function addDays(date, days) {
+                const result = new Date(date);
+                result.setDate(result.getDate() + days);
+                return result;
+            }
+
+            function escapeIcsText(str) {
+                return String(str)
+                    .replace(/\\/g, '\\\\')
+                    .replace(/;/g, '\\;')
+                    .replace(/,/g, '\\,')
+                    .replace(/\n/g, '\\n');
+            }
+
+            function buildIcs(calendarName, events) {
+                const dtstamp = toIcsDateTime(new Date());
+                const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Syllabuild//EN', 'CALSCALE:GREGORIAN'];
+
+                events.forEach((event, index) => {
+                    lines.push(
+                        'BEGIN:VEVENT',
+                        `UID:syllabuild-${index + 1}-${dtstamp}@syllabuild`,
+                        `DTSTAMP:${dtstamp}`,
+                        `DTSTART;VALUE=DATE:${toIcsDate(event.date)}`,
+                        `DTEND;VALUE=DATE:${toIcsDate(addDays(event.date, 1))}`,
+                        `SUMMARY:${escapeIcsText(event.summary)}`,
+                        `DESCRIPTION:${escapeIcsText(event.description)}`,
+                        'END:VEVENT'
+                    );
+                });
+
+                lines.push('END:VCALENDAR');
+                return lines.join('\r\n');
+            }
+
+            const calendarExporter = {
+                generate() {
+                    const data = state.getFormData();
+                    const unitTitle = data.unitTitle || 'Unit';
+                    const teachingWeeks = parseInt(data.teachingWeeks, 10) || 0;
+                    const effectiveStartDate = data.dateSource === 'mmu' ? ACADEMIC_CALENDAR[data.mmuTerm]?.date : data.startDate;
+
+                    if (!effectiveStartDate || teachingWeeks <= 0) {
+                        alert('Set a start date (MMU Calendar or Custom Date) and teaching weeks before exporting a calendar.');
+                        return;
+                    }
+
+                    const events = [];
+                    for (let i = 1; i <= teachingWeeks; i++) {
+                        const weekDate = dateUtils.getWeekStartDateObject(effectiveStartDate, i);
+                        if (!weekDate) continue;
+
+                        const topic = (document.getElementById(`week-${i}-topic`)?.value || '').trim();
+                        events.push({
+                            date: weekDate,
+                            summary: `This week in ${unitTitle}`,
+                            description: topic ? `Week ${i}: ${topic}` : `Week ${i}`
+                        });
+                    }
+
+                    const ics = buildIcs(unitTitle, events);
+                    const blob = new Blob([ics], { type: 'text/calendar' });
+                    const filename = `${(data.unitCode || unitTitle).replace(/ /g, '_')}.ics`;
+                    saveAs(blob, filename);
+                }
+            };
+
+            // --- Date Source UI Manager ---
+            const dateSourceManager = {
+                init() {
+                    const termSelect = document.getElementById('mmu-term');
+                    termSelect.innerHTML = Object.entries(ACADEMIC_CALENDAR)
+                        .map(([value, {label}]) => `<option value="${value}">${label}</option>`)
+                        .join('');
+                    
+                    configForm.querySelectorAll('input[name="dateSource"]').forEach(radio => {
+                        radio.addEventListener('change', this.toggleSelectors);
+                    });
+                    this.toggleSelectors();
+                },
+                toggleSelectors() {
+                    const useCustom = document.querySelector('input[name="dateSource"][value="custom"]').checked;
+                    document.getElementById('mmu-calendar-selector').classList.toggle('hidden', useCustom);
+                    document.getElementById('custom-date-selector').classList.toggle('hidden', !useCustom);
+                }
+            };
+
+            // --- Event Listeners ---
+            configForm.addEventListener('input', (e) => {
+                calculator.update();
+                syllabusHeaderManager.update();
+
+                if (['teaching-weeks', 'startDate', 'mmuTerm', 'dateSource'].includes(e.target.name) || ['teaching-weeks', 'start-date', 'mmu-term'].includes(e.target.id)) {
+                    workspaceManager.generateWeeks();
+                }
+
+                unsavedChangesManager.markDirty();
+            });
+
+            workspace.addEventListener('click', (e) => {
+                // Handle week tab clicks
+                const tab = e.target.closest('.week-tab');
+                if (tab) {
+                    const weekNumber = tab.dataset.week;
+                    // Update active tab
+                    workspace.querySelectorAll('.week-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    // Show the correct week card and hide the others
+                    workspace.querySelectorAll('.week-card').forEach(card => {
+                        card.classList.add('hidden');
+                        card.classList.remove('active');
+                    });
+                    const selectedCard = document.getElementById(`week-${weekNumber}-card`);
+                    if (selectedCard) {
+                        selectedCard.classList.remove('hidden');
+                        selectedCard.classList.add('active');
+                    }
+                }
+
+                if (e.target.closest('.week-card')) {
+                    workspaceManager.updateWeekProgressStates();
+                }
+
+                // Handle per-week export button clicks
+                if (e.target.classList.contains('export-week-button')) {
+                    const weekNumber = e.target.dataset.week;
+                    const html = weeklyExportManager.generateForWeek(weekNumber);
+                    const outputTextarea = document.getElementById(`week-${weekNumber}-export`);
+                    outputTextarea.value = html;
+                    outputTextarea.style.display = 'block';
+                    // Provide feedback to user
+                    e.target.textContent = 'Copied to box below!';
+                    setTimeout(() => { e.target.textContent = 'Export Week HTML'; }, 2000);
+                    outputTextarea.select();
+
+                    getWeekMeta(weekNumber).lastExportedAt = new Date().toISOString();
+                    workspaceManager.updateWeekProgressStates();
+                }
+            });
+
+            workspace.addEventListener('input', (e) => {
+                // Export-drift tracking: any edit inside a week card marks that week as modified
+                const modifiedWeek = getWeekNumberFromEventTarget(e.target);
+                if (modifiedWeek && e.target.closest('.week-card')) {
+                    getWeekMeta(modifiedWeek).lastModifiedAt = new Date().toISOString();
+                    workspaceManager.updateWeekProgressStates();
+                }
+
+                // Live update for week card titles
+                if (e.target.matches('input[id$="-topic"]')) {
+                    const weekNumber = e.target.id.split('-')[1];
+                    const card = document.getElementById(`week-${weekNumber}-card`);
+                    if (card) {
+                        const titleElement = card.querySelector('h4');
+                        const topic = e.target.value.trim();
+                        if (titleElement) {
+                            titleElement.textContent = `Week ${weekNumber}` + (topic ? `: ${topic}` : '');
+                        }
+                    }
+                }
+
+                unsavedChangesManager.markDirty();
+            });
+
+            workspace.addEventListener('change', (e) => {
+                // Export-drift tracking: any change inside a week card marks that week as modified
+                const modifiedWeek = getWeekNumberFromEventTarget(e.target);
+                if (modifiedWeek && e.target.closest('.week-card')) {
+                    getWeekMeta(modifiedWeek).lastModifiedAt = new Date().toISOString();
+                }
+
+                // Assessment date field only makes sense once an assessment type is set
+                if (e.target.matches('select[id$="-assessment-type"]')) {
+                    const dateInput = document.getElementById(e.target.id.replace('-assessment-type', '-assessment-date'));
+                    if (dateInput) {
+                        dateInput.classList.toggle('hidden', e.target.value === 'none');
+                    }
+                }
+
+                if (e.target.matches('input[type="checkbox"]') || e.target.matches('select[id$="-assessment-type"]')) {
+                    workspaceManager.updateWeekProgressStates();
+                }
+
+                unsavedChangesManager.markDirty();
+            });
+
+            workspace.addEventListener('focusout', (e) => {
+                // Don't allow a heading to be left blank
+                if (e.target.matches('.week-heading-input') && e.target.value.trim() === '') {
+                    e.target.value = e.target.id.endsWith('-focus-label') ? 'Weekly Focus' : 'Extra Information';
+                }
+            });
+
+            saveButton.addEventListener('click', fileManager.save);
+            loadButton.addEventListener('click', fileManager.load);
+            exportWordButton.addEventListener('click', wordExporter.generate);
+            exportCalendarButton.addEventListener('click', calendarExporter.generate);
+
+            historyButton.addEventListener('click', () => changelogManager.open());
+            document.getElementById('history-close-button').addEventListener('click', () => changelogManager.close());
+            document.getElementById('changelog-add-button').addEventListener('click', () => {
+                const input = document.getElementById('changelog-note-input');
+                changelogManager.addEntry(input.value);
+                input.value = '';
+            });
+
+            // --- Initialisation ---
+            function init() {
+                console.log('Syllabuild Initialised');
+                dateSourceManager.init();
+                calculator.update(); // Perform initial calculation on load
+                syllabusHeaderManager.update(); // Populate header on load
+                workspaceManager.generateWeeks(); // Generate initial workspace on load
+            }
+
+            init();
+
+        })();
+    </script>
+
+</body>
+</html>
