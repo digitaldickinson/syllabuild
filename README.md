@@ -1,2 +1,44 @@
-# syllabuild
-A lightweight syllabus builder for HE
+# Syllabuild
+
+A local-first, zero-dependency, single-file curriculum design application tailored for UK Higher Education modules. 
+
+Syllabuild bridges the gap between pedagogical software planning and rigid academic administrative compliance. It allows unit leaders to construct rich linear schedules, calculate notional student workloads, map curriculum requirements, and export clean snippets directly to Virtual Learning Environments (VLEs) or validation documents.
+
+---
+
+## Key Features
+
+### 1. Dynamic Workload Analytics
+* **Automated Hour Calculations:** Instantly tracks total contact hours against credit sizing metrics (1 credit = 10 notional learning hours) in a sticky dashboard.
+* **Independent Study Guidance:** Automatically generates suggested independent study targets based on class contact times.
+
+### 2. Built for VLE & Validation Workflows
+* **Granular VLE Export:** Clean, inline-sanitized HTML snippets produced specifically for Moodle or alternative platform text areas.
+* **Document Synchronization:** Visual "Export Drift" indicators highlight if content has been modified since it was last copied to external platforms.
+* **Macro Exports:** Generates fully stylized `.docx` files for formal curriculum validation processes and `.ics` files for calendar population.
+
+### 3. Native Policy & Evidence Mapping
+* **Curriculum Checklists:** Explicit fields to track Work Informed Learning (**WIL**) and Education for Sustainable Development (**ESD**) indicators.
+* **Compliance Flags:** Dedicated tracking for institutional reviews (e.g., DELTA and RIPIAG frameworks).
+* **Automated Appendix Generation:** Toggled framework checkmarks automatically build organized pedagogical evidence sections inside formal document exports.
+
+### 4. Lightweight & Secure
+* **Local-First State:** Full module configurations save down to a portable, lightweight `.syllabuild` JSON format.
+* **Zero Infrastructure Requirements:** Written in vanilla JavaScript with an architecture requiring no Node engine runtime, external databases, or server configurations.
+
+---
+
+## Technical Stack
+
+* **Core Language:** Native Vanilla HTML5 / ES6 JavaScript / CSS3 Variables.
+* **Rich Text Editing:** Quill.js WYSIWYG editor engine (tailored run context with filtered asset sanitization allowlists).
+* **Document Processing:** html-docx-js / FileSaver.js for client-side blob generation.
+
+---
+
+## Getting Started
+
+1. Download or clone the `index.html` source file.
+2. Double-click the file to launch it natively inside any contemporary modern web browser.
+3. Open the **Configure** drawer to set structural metadata (such as credits, target terms, or weekly teaching contact allocation).
+4. Save your progress down locally as a `.syllabuild` backup asset at any point using the top-level control panel.
