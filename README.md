@@ -45,3 +45,9 @@ Syllabuild bridges the gap between pedagogical software planning and rigid acade
 1. Use the [hosted version](https://digitaldickinson.github.io/syllabuild/syllabuild.html) directly in your browser, or download/clone the `syllabuild.html` source file and double-click it to launch it natively inside any contemporary modern web browser.
 2. Open the **Configure** drawer to set structural metadata (such as credits, target terms, or weekly teaching contact allocation).
 3. Save your progress down locally as a `.syllabuild` backup asset at any point using the top-level control panel.
+
+---
+
+## Development Notes
+
+Parts of this application were developed with the assistance of AI coding agents.
