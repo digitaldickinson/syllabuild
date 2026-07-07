@@ -29,6 +29,7 @@ Syllabuild bridges the gap between pedagogical software planning and rigid acade
 
 ### 4. Lightweight & Secure
 * **Local-First State:** Full module configurations save down to a portable, lightweight `.syllabuild` JSON format.
+* **Accidental-Close Protection:** Warns before an accidental back button or tab close if there are unsaved changes, and silently drafts your in-progress work to the browser so it can be recovered after a crash.
 * **Zero Infrastructure Requirements:** Written in vanilla JavaScript with an architecture requiring no Node engine runtime, external databases, or server configurations.
 
 ---

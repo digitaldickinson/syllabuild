@@ -1882,14 +1882,79 @@
                 markDirty() {
                     this.hasChanges = true;
                     this.render();
+                    autosaveManager.scheduleSave();
                 },
                 markClean() {
                     this.hasChanges = false;
                     this.render();
+                    autosaveManager.clear();
                 },
                 render() {
                     saveButton.classList.toggle('has-pending-changes', this.hasChanges);
                     saveButton.title = this.hasChanges ? 'Unsaved changes' : '';
+                }
+            };
+
+            // --- Browser-crash / accidental-close recovery ---
+            // Debounced snapshot of in-progress form state into localStorage. This is
+            // purely a safety net for an accidental back button, tab close, or crash -
+            // it is never the source of truth once the user has saved or loaded a real
+            // .syllabuild file, at which point markClean() wipes the draft.
+            const autosaveManager = {
+                STORAGE_KEY: 'syllabuild-autosave-v1',
+                DEBOUNCE_MS: 1000,
+                timer: null,
+                scheduleSave() {
+                    clearTimeout(this.timer);
+                    this.timer = setTimeout(() => this.save(), this.DEBOUNCE_MS);
+                },
+                save() {
+                    clearTimeout(this.timer);
+                    try {
+                        const data = state.getFormData();
+                        localStorage.setItem(this.STORAGE_KEY, JSON.stringify({ savedAt: new Date().toISOString(), data }));
+                    } catch (error) {
+                        console.error('Autosave failed:', error);
+                    }
+                },
+                clear() {
+                    clearTimeout(this.timer);
+                    try {
+                        localStorage.removeItem(this.STORAGE_KEY);
+                    } catch (error) {
+                        console.error('Autosave clear failed:', error);
+                    }
+                },
+                restoreIfAvailable() {
+                    let raw;
+                    try {
+                        raw = localStorage.getItem(this.STORAGE_KEY);
+                    } catch (error) {
+                        console.error('Autosave read failed:', error);
+                        return;
+                    }
+                    if (!raw) return;
+
+                    let draft;
+                    try {
+                        draft = JSON.parse(raw);
+                    } catch (error) {
+                        console.error('Autosave draft was corrupted:', error);
+                        this.clear();
+                        return;
+                    }
+
+                    const savedAt = draft.savedAt ? new Date(draft.savedAt).toLocaleString('en-GB') : 'a previous session';
+                    const shouldRestore = confirm(`Syllabuild found unsaved changes from ${savedAt} that were never exported to a .syllabuild file. Restore them?`);
+
+                    if (shouldRestore) {
+                        state.setFormData(draft.data);
+                        syllabusHeaderManager.update();
+                        calculator.update();
+                        unsavedChangesManager.markDirty(); // restored draft is still unsaved to a file
+                    } else {
+                        this.clear();
+                    }
                 }
             };
 
@@ -2325,6 +2390,17 @@
                 }
             });
 
+            window.addEventListener('beforeunload', (e) => {
+                if (!unsavedChangesManager.hasChanges) return;
+
+                // Flush immediately so the very latest edit is captured, not just
+                // whatever the debounced autosave last wrote.
+                autosaveManager.save();
+
+                e.preventDefault();
+                e.returnValue = '';
+            });
+
             saveButton.addEventListener('click', fileManager.save);
             loadButton.addEventListener('click', fileManager.load);
             exportWordButton.addEventListener('click', wordExporter.generate);
@@ -2345,6 +2421,7 @@
                 calculator.update(); // Perform initial calculation on load
                 syllabusHeaderManager.update(); // Populate header on load
                 workspaceManager.generateWeeks(); // Generate initial workspace on load
+                autosaveManager.restoreIfAvailable(); // Offer to recover from an accidental close/crash
             }
 
             init();
