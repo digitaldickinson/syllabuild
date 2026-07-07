@@ -41,7 +41,7 @@ Syllabuild bridges the gap between pedagogical software planning and rigid acade
 
 ## Getting Started
 
-1. Download or clone the `index.html` source file.
+1. Download or clone the `syllabuild.html` source file.
 2. Double-click the file to launch it natively inside any contemporary modern web browser.
 3. Open the **Configure** drawer to set structural metadata (such as credits, target terms, or weekly teaching contact allocation).
 4. Save your progress down locally as a `.syllabuild` backup asset at any point using the top-level control panel.

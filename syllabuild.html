@@ -1945,6 +1945,43 @@
                 return `<h4>${heading}</h4><p>${prose}</p>`;
             }
 
+            // Simple at-a-glance overview table: week, week-beginning date, topic/theme,
+            // plus a blank column left for the tutor to annotate on a printed copy.
+            function buildWeeklyOverviewTable(teachingWeeks, effectiveStartDate) {
+                if (teachingWeeks <= 0) return '';
+
+                const cellStyle = 'border: 1px solid #dddddd; text-align: left; padding: 6px; vertical-align: top;';
+                const headerStyle = `${cellStyle} background-color: #f2f2f2;`;
+
+                const bodyRows = [];
+                for (let i = 1; i <= teachingWeeks; i++) {
+                    const topic = (document.getElementById(`week-${i}-topic`)?.value || '').trim();
+                    const weekDate = dateUtils.getWeekStartDate(effectiveStartDate, i);
+                    bodyRows.push(`
+                        <tr>
+                            <td style="${cellStyle} width: 8%;">${i}</td>
+                            <td style="${cellStyle} width: 15%;">${weekDate ? escapeHtml(weekDate) : ''}</td>
+                            <td style="${cellStyle} width: 37%;">${escapeHtml(topic)}</td>
+                            <td style="${cellStyle} width: 40%;">&nbsp;</td>
+                        </tr>
+                    `);
+                }
+
+                return `
+                    <h3>Weekly Overview</h3>
+                    <table style="width:100%; border-collapse: collapse; border: 1px solid #dddddd; table-layout: fixed;">
+                        <tr>
+                            <th style="${headerStyle} width: 8%;">Week</th>
+                            <th style="${headerStyle} width: 15%;">W/B</th>
+                            <th style="${headerStyle} width: 37%;">Topic / Theme</th>
+                            <th style="${headerStyle} width: 40%;">Tutor Notes</th>
+                        </tr>
+                        ${bodyRows.join('')}
+                    </table>
+                    <br/>
+                `;
+            }
+
             const wordExporter = {
                 generate() {
                     const data = state.getFormData();
@@ -1963,6 +2000,10 @@
                     const complianceHtml = complianceLines.length
                         ? `<h3>Policy Compliance</h3><ul>${complianceLines.map(line => `<li>${line}</li>`).join('')}</ul><br/>`
                         : '';
+
+                    const teachingWeeks = parseInt(data.teachingWeeks, 10) || 0;
+                    const effectiveStartDate = data.dateSource === 'mmu' ? ACADEMIC_CALENDAR[data.mmuTerm]?.date : data.startDate;
+                    const weeklyOverviewHtml = buildWeeklyOverviewTable(teachingWeeks, effectiveStartDate);
 
                     let contentHtml = `
                         <h1>${unitTitle}</h1>
@@ -1986,13 +2027,21 @@
                         </table>
                         <br/>
                         ${complianceHtml}
+                        ${weeklyOverviewHtml}
                         <h3>Weekly Schedule</h3>
                     `;
 
-                    const teachingWeeks = parseInt(data.teachingWeeks, 10) || 0;
                     for (let i = 1; i <= teachingWeeks; i++) {
-                        const weeklyHtml = weeklyExportManager.generateForWeek(i);
-                        contentHtml += weeklyHtml.replace(/<h4>/g, '<h4>').replace(/<h5>/g, '<h5>');
+                        const topic = (document.getElementById(`week-${i}-topic`)?.value || '').trim();
+                        const weekDate = dateUtils.getWeekStartDate(effectiveStartDate, i);
+                        const weekHeading = `Week ${i}` + (topic ? `: ${escapeHtml(topic)}` : '') + (weekDate ? ` (W/B: ${escapeHtml(weekDate)})` : '');
+
+                        // generateForWeek() is shared with the per-week Moodle export, whose
+                        // <h4> is just the topic - swap it here for a heading that also carries
+                        // the week number and W/B date, which only matters in this linear doc.
+                        const weeklyHtml = weeklyExportManager.generateForWeek(i)
+                            .replace(/^<h4>.*?<\/h4>\n/, `<h4>${weekHeading}</h4>\n`);
+                        contentHtml += weeklyHtml;
 
                         // The Word export covers the whole document in one go, so every
                         // week with actual content counts as exported "now".
