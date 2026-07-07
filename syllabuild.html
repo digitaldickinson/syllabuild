@@ -1023,11 +1023,6 @@
                 <div id="custom-date-selector" class="hidden">
                     <input type="date" id="start-date" name="startDate">
                 </div>
-
-                <label>Meeting Days</label>
-                <div class="checkbox-group">
-                    <label><input type="checkbox" name="meeting-day-mon" value="true"> Mon</label> <label><input type="checkbox" name="meeting-day-tue" value="true"> Tue</label> <label><input type="checkbox" name="meeting-day-wed" value="true"> Wed</label> <label><input type="checkbox" name="meeting-day-thu" value="true"> Thu</label> <label><input type="checkbox" name="meeting-day-fri" value="true"> Fri</label>
-                </div>
             </fieldset>
             <fieldset>
                 <legend>Description</legend>
@@ -1674,15 +1669,11 @@
                                         ${WEEKDAY_DEFS.map(([code, label, dayIndex]) => {
                                             const dayKey = `week-${weekNumber}-day-${code}`;
                                             const dayDate = dateUtils.getDayDate(effectiveStartDate, weekNumber, dayIndex);
-                                            // New weeks (not yet in data) inherit the global Contact Days
-                                            // pattern from Configure; weeks already saved keep whatever was
-                                            // explicitly set, even if that means unticking a normally-active day.
-                                            const isExplicit = Object.prototype.hasOwnProperty.call(data, dayKey);
-                                            const isChecked = isExplicit ? !!data[dayKey] : !!data[`meeting-day-${code}`];
+                                            const isChecked = !!data[dayKey];
                                             return `<li><label><input type="checkbox" name="${dayKey}" ${isChecked ? 'checked' : ''}> ${label}${dayDate ? ` <span class="contact-day-date">${dayDate}</span>` : ''}</label></li>`;
                                         }).join('')}
                                     </ul>
-                                    <ul class="checklist">
+                                    <ul class="checklist" style="margin-top: var(--space-4);">
                                         ${hasLectures ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-lecture"> Lectures prepared</label></li>` : ''}
                                         ${hasWorkshops ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-workshop">Workshops prepared </label></li>` : ''}
                                         ${hasSeminars ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-seminar"> Seminars prepared</label></li>` : ''}
@@ -1759,14 +1750,12 @@
                             }
                         }
 
-                        // Contact Days checkboxes: mirror createWeekCard's explicit-vs-fallback
-                        // logic so reloading doesn't override the pattern inherited from Configure.
+                        // Contact Days checkboxes
                         WEEKDAY_DEFS.forEach(([code]) => {
                             const dayKey = `${weekPrefix}day-${code}`;
                             const checkbox = document.querySelector(`[name="${dayKey}"]`);
                             if (checkbox) {
-                                const isExplicit = Object.prototype.hasOwnProperty.call(data, dayKey);
-                                checkbox.checked = isExplicit ? !!data[dayKey] : !!data[`meeting-day-${code}`];
+                                checkbox.checked = !!data[dayKey];
                             }
                         });
                         // Checkboxes for prep checklist

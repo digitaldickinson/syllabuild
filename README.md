@@ -20,7 +20,7 @@ Syllabuild bridges the gap between pedagogical software planning and rigid acade
 * **Granular VLE Export:** Clean, inline-sanitized HTML snippets produced specifically for Moodle or alternative platform text areas.
 * **Document Synchronization:** Visual "Export Drift" indicators highlight if content has been modified since it was last copied to external platforms.
 * **Macro Exports:** Generates fully stylized `.docx` files for formal curriculum validation processes and `.ics` calendar files with one event per confirmed Contact Day.
-* **Per-Week Contact Days:** Mon–Fri checkboxes on each week card, pre-filled from the global meeting-day pattern but individually overridable (e.g. for reading weeks or bank holidays), each showing its actual calendar date.
+* **Per-Week Contact Days:** Mon–Fri checkboxes on each week card, each showing its actual calendar date, so class weeks can be marked independently (e.g. for reading weeks or bank holidays).
 
 ### 3. Native Policy & Evidence Mapping
 * **Curriculum Checklists:** Explicit fields to track Work Informed Learning (**WIL**) and Education for Sustainable Development (**ESD**) indicators.
