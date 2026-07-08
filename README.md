@@ -15,6 +15,7 @@ Syllabuild bridges the gap between pedagogical software planning and rigid acade
 ### 1. Dynamic Workload Analytics
 * **Automated Hour Calculations:** Instantly tracks total contact hours against credit sizing metrics (1 credit = 10 notional learning hours) in a sticky dashboard.
 * **Independent Study Guidance:** Automatically generates suggested independent study targets based on class contact times.
+* **Per-Week Hour Overrides:** Adjust Lecture/Workshop/Seminar/Tutorial hours for an individual week when it genuinely differs from the default, with a clear "custom" indicator and one-click reset back to inheriting the Configure value. Total Contact Hours reflects the real per-week total, not just the default multiplied out.
 
 ### 2. Built for VLE & Validation Workflows
 * **Granular VLE Export:** Clean, inline-sanitized HTML snippets produced specifically for Moodle or alternative platform text areas.
@@ -34,7 +35,7 @@ Syllabuild bridges the gap between pedagogical software planning and rigid acade
 * **Zero Infrastructure Requirements:** Written in vanilla JavaScript with an architecture requiring no Node engine runtime, external databases, or server configurations.
 
 ### 5. Multiple Planning Views
-* **Cards / Timeline / Status Board:** Switch the week strip between a card-per-week view, a row-based timeline showing Contact Days and assessment markers across every week at a glance, and a status board that groups weeks by readiness (Pending / Partial / Completed / External Factor).
+* **Cards / Timeline / Status Board:** Switch the week strip between a card-per-week view, a row-based timeline showing a stacked contact-hours chart and assessment markers across every week at a glance, and a status board that groups weeks by readiness (Pending / Partial / Completed / External Factor).
 
 ---
 
