@@ -32,6 +32,9 @@ Syllabuild bridges the gap between pedagogical software planning and rigid acade
 * **Accidental-Close Protection:** Warns before an accidental back button or tab close if there are unsaved changes, and silently drafts your in-progress work to the browser so it can be recovered after a crash.
 * **Zero Infrastructure Requirements:** Written in vanilla JavaScript with an architecture requiring no Node engine runtime, external databases, or server configurations.
 
+### 5. Multiple Planning Views
+* **Cards / Timeline / Status Board:** Switch the week strip between a card-per-week view, a row-based timeline showing Contact Days and assessment markers across every week at a glance, and a status board that groups weeks by readiness (Pending / Partial / Completed / External Factor).
+
 ---
 
 ## Technical Stack
