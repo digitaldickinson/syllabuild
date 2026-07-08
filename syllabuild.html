@@ -627,6 +627,93 @@
             border-radius: 2px 2px 0 0;
         }
 
+        .hours-stack {
+            width: 45%;
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+        }
+
+        .hours-segment {
+            width: 100%;
+        }
+
+        .hours-segment-lecture { background: var(--accent-color); }
+        .hours-segment-workshop { background: #22c55e; }
+        .hours-segment-seminar { background: #f59e0b; }
+        .hours-segment-tutorial { background: #a855f7; }
+
+        .hours-segment:first-child { border-radius: 0 0 2px 2px; }
+        .hours-segment:last-child { border-radius: 2px 2px 0 0; }
+
+        .hours-legend {
+            display: flex;
+            gap: var(--space-3);
+            flex-wrap: wrap;
+            font-size: var(--font-xs);
+            color: var(--text-muted);
+            margin-bottom: var(--space-2);
+        }
+
+        .hours-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .hours-legend-swatch {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            display: inline-block;
+        }
+
+        .hours-week-list {
+            list-style-type: none;
+            display: grid;
+            gap: var(--space-2);
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        }
+
+        .hours-week-list li label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--space-2);
+            font-size: var(--font-sm);
+        }
+
+        .hours-week-list input[type="number"] {
+            width: 70px;
+            padding: var(--space-1) var(--space-2);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--input-bg);
+            font-size: var(--font-sm);
+        }
+
+        .hours-week-caption {
+            font-size: var(--font-xs);
+            color: var(--text-muted);
+            margin-top: var(--space-1);
+        }
+
+        .hours-override-indicator {
+            font-size: var(--font-xs);
+            font-weight: 400;
+            color: var(--text-muted);
+        }
+
+        .hours-reset-button {
+            background: none;
+            border: none;
+            color: var(--accent-color);
+            font-size: var(--font-xs);
+            text-decoration: underline;
+            cursor: pointer;
+            padding: 0;
+        }
+
         .week-tab-timeline-dot {
             position: absolute;
             top: -2px;
@@ -787,8 +874,11 @@
             color: #2f6a45;
         }
 
-        .week-tab.external-factor::after {
-            content: '!';
+        /* A real element (not ::after) so it can carry its own "title" tooltip -
+           pseudo-elements can't have one, and the whole tab already has its own
+           topic/staff-notes tooltip that this must not clash with. */
+        .week-tab-external-factor-badge {
+            display: none;
             position: absolute;
             top: 6px;
             right: 6px;
@@ -797,13 +887,16 @@
             background-color: #ef4444;
             color: white;
             border-radius: 50%;
-            display: flex;
             align-items: center;
             justify-content: center;
             font-size: 12px;
             font-weight: bold;
             line-height: 1;
             box-shadow: 0 0 0 2px var(--surface-color);
+        }
+
+        .week-tab.external-factor .week-tab-external-factor-badge {
+            display: flex;
         }
 
         /* Bottom-right - there's no other badge down there, and it stops crowding
@@ -816,6 +909,15 @@
             font-size: 12px;
             color: #f59e0b;
             line-height: 1;
+        }
+
+        /* Timeline mode's .week-tab-timeline is display:contents, so this pseudo-element
+           has no box of its own to anchor "position: absolute" to and renders adrift near
+           some distant ancestor instead of on the week. The Assessment row's dot already
+           conveys this there, so just suppress the star in this mode rather than fix its
+           positioning. */
+        .week-tab-timeline.has-assessment::before {
+            content: none;
         }
 
         .week-card {
@@ -1658,6 +1760,23 @@
                 return !isRichTextEmpty(reading);
             }
 
+            // Single source of truth for "how many hours of each type happen this
+            // week." Override wins if explicitly set; otherwise falls back to the
+            // Configure default. External Factor is just a flag/note here - it
+            // doesn't change the hours calculation. If a bank holiday or reading
+            // week genuinely has no contact hours, set that week's override to 0.
+            function getEffectiveWeekHours(weekNumber, data) {
+                const types = ['lecture', 'workshop', 'seminar', 'tutorial'];
+                const hours = {};
+                types.forEach((type) => {
+                    const override = data[`week-${weekNumber}-hours-${type}`];
+                    hours[type] = (override !== undefined && override !== '')
+                        ? parseFloat(override) || 0
+                        : parseFloat(data[type]) || 0;
+                });
+                return hours;
+            }
+
             // --- State Management ---
             const state = {
                 // In-memory only; persisted into/restored from the .syllabuild JSON
@@ -1746,16 +1865,22 @@
                 update() {
                     const data = state.getFormData();
                     const creditSize = parseFloat(data.creditSize) || 0;
-                    const teachingWeeks = parseFloat(data.teachingWeeks) || 0;
-                    const lecture = parseFloat(data.lecture) || 0;
-                    const workshop = parseFloat(data.workshop) || 0;
-                    const seminar = parseFloat(data.seminar) || 0;
-                    const tutorial = parseFloat(data.tutorial) || 0;
+                    const teachingWeeksCount = parseInt(data.teachingWeeks, 10) || 0;
 
                     // 1 credit = 10 notional learning hours
                     const totalNotionalHours = creditSize * 10;
-                    const weeklyContactHours = lecture + workshop + seminar + tutorial;
-                    const totalContactHours = weeklyContactHours * teachingWeeks;
+
+                    // Sum the REAL per-week hours (override where set, Configure default
+                    // otherwise) rather than multiplying the default by the week count.
+                    // With zero overrides this produces the same total as before - it
+                    // only diverges once a week is genuinely different, which is exactly
+                    // when the old multiplication would have silently gone wrong.
+                    let totalContactHours = 0;
+                    for (let i = 1; i <= teachingWeeksCount; i++) {
+                        const hours = getEffectiveWeekHours(i, data);
+                        totalContactHours += hours.lecture + hours.workshop + hours.seminar + hours.tutorial;
+                    }
+
                     const independentStudy = totalNotionalHours - totalContactHours;
 
                     this.displayResults({ totalNotionalHours, totalContactHours, independentStudy });
@@ -1880,10 +2005,12 @@
                     for (let i = 1; i <= teachingWeeks; i++) {
                         const weekDate = dateUtils.getWeekStartDate(effectiveStartDate, i);
                         const tooltip = this.buildWeekTooltip(data, i);
+                        const externalFactorNote = (data[`week-${i}-external-factor-notes`] || '').trim();
                         html += `<div class="week-tab ${i === activeWeek ? 'active' : ''}" data-week="${i}"${tooltip ? ` title="${escapeHtml(tooltip)}"` : ''}>
                             <span class="week-label">Week</span>
                             <span class="week-number">${i}</span>
                             ${weekDate ? `<span class="week-date">W/B: ${weekDate}</span>` : ''}
+                            <span class="week-tab-external-factor-badge" title="${escapeHtml(externalFactorNote || 'External Factor')}">!</span>
                         </div>`;
                     }
                     return html;
@@ -1891,7 +2018,25 @@
                 buildTimelineHtml(data, teachingWeeks, activeWeek) {
                     const effectiveStartDate = this.getEffectiveStartDate(data);
 
-                    const rowLabels = ['Week', 'W/B', 'Contact days', 'Assessment', 'Status'];
+                    // Pre-compute every week's effective hours once, so bar segments scale
+                    // consistently against the busiest week in the unit.
+                    const weeklyHours = {};
+                    let maxWeeklyTotal = 0;
+                    for (let i = 1; i <= teachingWeeks; i++) {
+                        const hours = getEffectiveWeekHours(i, data);
+                        weeklyHours[i] = hours;
+                        const total = hours.lecture + hours.workshop + hours.seminar + hours.tutorial;
+                        if (total > maxWeeklyTotal) maxWeeklyTotal = total;
+                    }
+
+                    const segmentTypes = [
+                        { key: 'lecture', className: 'hours-segment-lecture', label: 'Lecture' },
+                        { key: 'workshop', className: 'hours-segment-workshop', label: 'Workshop' },
+                        { key: 'seminar', className: 'hours-segment-seminar', label: 'Seminar' },
+                        { key: 'tutorial', className: 'hours-segment-tutorial', label: 'Tutorial' }
+                    ];
+
+                    const rowLabels = ['Week', 'W/B', 'Contact hours', 'Assessment', 'Status'];
                     let labelsHtml = rowLabels.map((label, rowIdx) =>
                         `<div class="week-timeline-row-label" style="grid-row:${rowIdx + 1};">${label}</div>`
                     ).join('');
@@ -1900,24 +2045,42 @@
                     for (let i = 1; i <= teachingWeeks; i++) {
                         const col = i + 1; // column 1 is the label column
                         const weekDate = dateUtils.getWeekStartDate(effectiveStartDate, i);
-                        const dayCount = WEEKDAY_DEFS.filter(([code]) => !!data[`week-${i}-day-${code}`]).length;
-                        const barHeight = dayCount === 0 ? 4 : 10 + dayCount * 7;
+                        const hours = weeklyHours[i];
+                        const total = hours.lecture + hours.workshop + hours.seminar + hours.tutorial;
                         const assessmentType = data[`week-${i}-assessment-type`] || 'none';
+                        const assessmentLabel = assessmentType.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                        const isExternalFactor = !!data[`week-${i}-external-factor`];
+                        const externalFactorNote = (data[`week-${i}-external-factor-notes`] || '').trim();
                         const tooltip = this.buildWeekTooltip(data, i);
+
+                        const maxBarHeight = 44;
+                        const segmentsHtml = segmentTypes.map(({ key, className, label }) => {
+                            const value = hours[key];
+                            if (value <= 0) return '';
+                            const segHeight = maxWeeklyTotal > 0 ? Math.max(2, (value / maxWeeklyTotal) * maxBarHeight) : 0;
+                            return `<div class="hours-segment ${className}" style="height:${segHeight}px;" title="${label}: ${value}h"></div>`;
+                        }).join('');
 
                         weeksHtml += `<div class="week-tab week-tab-timeline ${i === activeWeek ? 'active' : ''}" data-week="${i}"${tooltip ? ` title="${escapeHtml(tooltip)}"` : ''}>
                             <div class="week-timeline-cell week-timeline-cell--num" style="grid-column:${col}; grid-row:1;">${i}</div>
                             <div class="week-timeline-cell" style="grid-column:${col}; grid-row:2;">${weekDate ? escapeHtml(weekDate) : ''}</div>
                             <div class="week-timeline-cell week-timeline-cell--bar" style="grid-column:${col}; grid-row:3;">
-                                <div class="week-tab-timeline-bar" style="height:${barHeight}px;" title="${dayCount} contact day${dayCount === 1 ? '' : 's'}"></div>
-                                ${assessmentType !== 'none' ? `<span class="week-tab-timeline-dot" title="${escapeHtml(assessmentType)}"></span>` : ''}
+                                <div class="hours-stack" title="${total}h contact hours this week">${segmentsHtml}</div>
+                                ${isExternalFactor ? `<span class="week-tab-timeline-dot" title="${escapeHtml(externalFactorNote || 'External Factor')}"></span>` : ''}
                             </div>
-                            <div class="week-timeline-cell" style="grid-column:${col}; grid-row:4;">${assessmentType !== 'none' ? '●' : ''}</div>
+                            <div class="week-timeline-cell" style="grid-column:${col}; grid-row:4;">${assessmentType !== 'none' ? `<span class="week-timeline-assessment-dot" title="${escapeHtml(assessmentLabel)}">●</span>` : ''}</div>
                             <div class="week-timeline-cell week-timeline-status-cell" style="grid-column:${col}; grid-row:5;"></div>
                         </div>`;
                     }
 
-                    return `<div class="week-timeline-grid" style="grid-template-columns: 110px repeat(${teachingWeeks}, minmax(40px, 1fr));">${labelsHtml}${weeksHtml}</div>`;
+                    const legendHtml = `<div class="hours-legend">${segmentTypes.map(({ className, label }) =>
+                        `<span class="hours-legend-item"><span class="hours-legend-swatch ${className}"></span>${label}</span>`
+                    ).join('')}</div>`;
+
+                    // Wrapped together so .week-timeline's own auto-fit card grid (used in
+                    // Cards mode) sees exactly one child here, not two competing for columns -
+                    // otherwise the legend and the week grid get squashed into separate tracks.
+                    return `<div class="week-timeline-content">${legendHtml}<div class="week-timeline-grid" style="grid-template-columns: 110px repeat(${teachingWeeks}, minmax(40px, 1fr));">${labelsHtml}${weeksHtml}</div></div>`;
                 },
                 buildBoardSkeletonHtml(data, teachingWeeks, activeWeek) {
                     const effectiveStartDate = this.getEffectiveStartDate(data);
@@ -1943,11 +2106,13 @@
                             isStale ? '<span class="overview-badge stale">Changed since export</span>' : '',
                             assessmentType !== 'none' ? `<span class="overview-badge assessment">${escapeHtml(assessmentType)}</span>` : ''
                         ].join('');
+                        const externalFactorNote = (data[`week-${i}-external-factor-notes`] || '').trim();
                         cardsHtml += `<div class="week-tab week-tab-board ${i === activeWeek ? 'active' : ''}" data-week="${i}">
                             <div>Week ${i}${topic ? `: ${escapeHtml(topic)}` : ''}</div>
                             ${weekDate ? `<div class="week-tab-board-date">W/B: ${escapeHtml(weekDate)}</div>` : ''}
                             ${badges}
                             ${staffNoteShort ? `<div class="week-tab-board-note" title="${escapeHtml(staffNote)}">${escapeHtml(staffNoteShort)}</div>` : ''}
+                            <span class="week-tab-external-factor-badge" title="${escapeHtml(externalFactorNote || 'External Factor')}">!</span>
                         </div>`;
                     }
 
@@ -2041,7 +2206,34 @@
                     return data;
                 },
 
-                refreshPrepChecklists(data) {
+                // The four Contact Hours inputs shown per week (Lecture/Workshop/Seminar/
+                // Tutorial) are gated on the SAME Configure defaults as the prep checklist,
+                // so a session type going from 0 to non-zero needs a matching input to
+                // appear, not just its "prepared" checkbox. Shared here so createWeekCard's
+                // initial render and the live refresh below can never drift apart.
+                buildHoursWeekSectionHtml(weekNumber, data) {
+                    const hasLectures = (parseFloat(data.lecture) || 0) > 0;
+                    const hasWorkshops = (parseFloat(data.workshop) || 0) > 0;
+                    const hasSeminars = (parseFloat(data.seminar) || 0) > 0;
+                    const hasTutorials = (parseFloat(data.tutorial) || 0) > 0;
+
+                    if (!(hasLectures || hasWorkshops || hasSeminars || hasTutorials)) return '';
+
+                    return `
+                        <label style="margin-top: var(--space-4);">Contact Hours This Week
+                            <span class="hours-override-indicator hidden" id="week-${weekNumber}-hours-override-indicator">(custom <button type="button" class="hours-reset-button" data-week="${weekNumber}">reset</button>)</span>
+                        </label>
+                        <ul class="hours-week-list">
+                            ${hasLectures ? `<li><label>Lecture <input type="number" min="0" step="0.5" class="hours-week-input" name="week-${weekNumber}-hours-lecture" data-week="${weekNumber}" placeholder="${escapeHtml(data.lecture || '0')}" value="${escapeHtml(data[`week-${weekNumber}-hours-lecture`] || '')}"></label></li>` : ''}
+                            ${hasWorkshops ? `<li><label>Workshop <input type="number" min="0" step="0.5" class="hours-week-input" name="week-${weekNumber}-hours-workshop" data-week="${weekNumber}" placeholder="${escapeHtml(data.workshop || '0')}" value="${escapeHtml(data[`week-${weekNumber}-hours-workshop`] || '')}"></label></li>` : ''}
+                            ${hasSeminars ? `<li><label>Seminar <input type="number" min="0" step="0.5" class="hours-week-input" name="week-${weekNumber}-hours-seminar" data-week="${weekNumber}" placeholder="${escapeHtml(data.seminar || '0')}" value="${escapeHtml(data[`week-${weekNumber}-hours-seminar`] || '')}"></label></li>` : ''}
+                            ${hasTutorials ? `<li><label>Tutorial <input type="number" min="0" step="0.5" class="hours-week-input" name="week-${weekNumber}-hours-tutorial" data-week="${weekNumber}" placeholder="${escapeHtml(data.tutorial || '0')}" value="${escapeHtml(data[`week-${weekNumber}-hours-tutorial`] || '')}"></label></li>` : ''}
+                        </ul>
+                        <p class="hours-week-caption">Leave blank to use the Configure default. Set a value here to override this week only.</p>
+                    `;
+                },
+
+                refreshHoursDependentUI(data) {
                     const hasLectures = (parseFloat(data.lecture) || 0) > 0;
                     const hasWorkshops = (parseFloat(data.workshop) || 0) > 0;
                     const hasSeminars = (parseFloat(data.seminar) || 0) > 0;
@@ -2050,17 +2242,32 @@
 
                     for (let i = 1; i <= teachingWeeks; i++) {
                         const checklist = document.getElementById(`week-${i}-prep-checklist`);
-                        if (!checklist) continue;
+                        if (checklist) {
+                            checklist.innerHTML = `
+                                ${hasLectures ? `<li><label><input type="checkbox" name="week-${i}-prep-lecture" ${data[`week-${i}-prep-lecture`] ? 'checked' : ''}> Lectures prepared</label></li>` : ''}
+                                ${hasWorkshops ? `<li><label><input type="checkbox" name="week-${i}-prep-workshop" ${data[`week-${i}-prep-workshop`] ? 'checked' : ''}>Workshops prepared </label></li>` : ''}
+                                ${hasSeminars ? `<li><label><input type="checkbox" name="week-${i}-prep-seminar" ${data[`week-${i}-prep-seminar`] ? 'checked' : ''}> Seminars prepared</label></li>` : ''}
+                                ${hasTutorials ? `<li><label><input type="checkbox" name="week-${i}-prep-tutorial" ${data[`week-${i}-prep-tutorial`] ? 'checked' : ''}> Tutorials prepared</label></li>` : ''}
+                            `;
+                        }
 
-                        checklist.innerHTML = `
-                            ${hasLectures ? `<li><label><input type="checkbox" name="week-${i}-prep-lecture" ${data[`week-${i}-prep-lecture`] ? 'checked' : ''}> Lectures prepared</label></li>` : ''}
-                            ${hasWorkshops ? `<li><label><input type="checkbox" name="week-${i}-prep-workshop" ${data[`week-${i}-prep-workshop`] ? 'checked' : ''}>Workshops prepared </label></li>` : ''}
-                            ${hasSeminars ? `<li><label><input type="checkbox" name="week-${i}-prep-seminar" ${data[`week-${i}-prep-seminar`] ? 'checked' : ''}> Seminars prepared</label></li>` : ''}
-                            ${hasTutorials ? `<li><label><input type="checkbox" name="week-${i}-prep-tutorial" ${data[`week-${i}-prep-tutorial`] ? 'checked' : ''}> Tutorials prepared</label></li>` : ''}
-                        `;
+                        const hoursSection = document.getElementById(`week-${i}-hours-section`);
+                        if (hoursSection) {
+                            hoursSection.innerHTML = this.buildHoursWeekSectionHtml(i, data);
+                        }
                     }
 
                     this.updateWeekProgressStates();
+                },
+
+                updateHoursOverrideIndicator(weekNumber) {
+                    const indicator = document.getElementById(`week-${weekNumber}-hours-override-indicator`);
+                    if (!indicator) return;
+                    const hasOverride = ['lecture', 'workshop', 'seminar', 'tutorial'].some((type) => {
+                        const input = document.querySelector(`input[name="week-${weekNumber}-hours-${type}"]`);
+                        return input && input.value !== '';
+                    });
+                    indicator.classList.toggle('hidden', !hasOverride);
                 },
 
                 createWeekCard(weekNumber, data) {
@@ -2139,7 +2346,8 @@
                                             return `<li><label><input type="checkbox" name="${dayKey}" ${isChecked ? 'checked' : ''}> ${label}${dayDate ? ` <span class="contact-day-date">${dayDate}</span>` : ''}</label></li>`;
                                         }).join('')}
                                     </ul>
-                                    <label for="week-${weekNumber}-assessment-type" style="margin-top: var(--space-4);">Assessment Type</label>
+                                    <div class="hours-week-section" id="week-${weekNumber}-hours-section">${this.buildHoursWeekSectionHtml(weekNumber, data)}</div>
+                                    <label for="week-${weekNumber}-assessment-type" style="margin-top: var(--space-4);">Assessment Point</label>
                                     <select id="week-${weekNumber}-assessment-type" name="week-${weekNumber}-assessment-type">${assessmentOptions}</select>
                                     <ul class="checklist" style="margin-top: var(--space-4);">
                                         <li>
@@ -2242,6 +2450,11 @@
 
                         if (externalFactorCheckbox && externalFactorCheckbox.checked) {
                             tab.classList.add('external-factor'); // Red highlight takes precedence over prep progress
+                            const badge = tab.querySelector('.week-tab-external-factor-badge');
+                            if (badge) {
+                                const note = card.querySelector(`textarea[name="week-${weekNumber}-external-factor-notes"]`)?.value.trim();
+                                badge.title = note || 'External Factor';
+                            }
                         } else {
                             // All four prep checkboxes plus Published drive the traffic light. A
                             // checkbox that doesn't exist for this unit (e.g. no seminar hours
@@ -2724,6 +2937,15 @@
                     for (let i = 1; i <= teachingWeeks; i++) {
                         const topic = (document.getElementById(`week-${i}-topic`)?.value || '').trim();
 
+                        // Hours are a week-level total, not tied to a specific day, so the
+                        // same summary is attached to every contact day that week - this is
+                        // "contact hours happening sometime this week," not a per-day split.
+                        const hours = getEffectiveWeekHours(i, data);
+                        const hoursSummary = ['lecture', 'workshop', 'seminar', 'tutorial']
+                            .filter((type) => hours[type] > 0)
+                            .map((type) => `${type.charAt(0).toUpperCase()}${type.slice(1)} ${hours[type]}h`)
+                            .join(', ');
+
                         // One event per checked Contact Day, not one per week - weeks with no
                         // contact days (e.g. reading week) correctly produce no calendar entries.
                         WEEKDAY_DEFS.forEach(([code, label, dayIndex]) => {
@@ -2735,7 +2957,10 @@
                             events.push({
                                 date: dayDate,
                                 summary: `This week in ${unitTitle} (${label})`,
-                                description: topic ? `Week ${i}: ${topic}` : `Week ${i}`
+                                description: [
+                                    topic ? `Week ${i}: ${topic}` : `Week ${i}`,
+                                    hoursSummary ? `Contact hours this week: ${hoursSummary}` : ''
+                                ].filter(Boolean).join(' — ')
                             });
                         });
                     }
@@ -2783,7 +3008,7 @@
                     const rebuiltData = workspaceManager.generateWeeks();
                     workspaceManager.populateWeeks(rebuiltData || state.getFormData());
                 } else if (triggersChecklistRefresh) {
-                    workspaceManager.refreshPrepChecklists(state.getFormData());
+                    workspaceManager.refreshHoursDependentUI(state.getFormData());
                 }
 
                 unsavedChangesManager.markDirty();
@@ -2820,6 +3045,18 @@
 
                 if (e.target.closest('.week-card')) {
                     workspaceManager.updateWeekProgressStates();
+                }
+
+                // Reset a week's hours overrides back to inheriting the Configure default
+                if (e.target.classList.contains('hours-reset-button')) {
+                    const weekNumber = e.target.dataset.week;
+                    ['lecture', 'workshop', 'seminar', 'tutorial'].forEach((type) => {
+                        const input = document.querySelector(`input[name="week-${weekNumber}-hours-${type}"]`);
+                        if (input && input.value !== '') {
+                            input.value = '';
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                    });
                 }
 
                 // Handle per-week export button clicks
@@ -2860,6 +3097,15 @@
                     }
                 }
 
+                if (e.target.matches('.hours-week-input')) {
+                    const weekNumber = e.target.dataset.week;
+                    workspaceManager.updateHoursOverrideIndicator(weekNumber);
+                    calculator.update();
+                    if (stripManager.mode === 'timeline') {
+                        stripManager.rerenderStripOnly();
+                    }
+                }
+
                 unsavedChangesManager.markDirty();
             });
 
@@ -2872,6 +3118,12 @@
 
                 if (e.target.matches('input[type="checkbox"]') || e.target.matches('select[id$="-assessment-type"]')) {
                     workspaceManager.updateWeekProgressStates();
+                    // External Factor and Assessment Type don't affect the hours totals, but
+                    // the Timeline's red dot and assessment marker are driven straight off
+                    // these fields, so it still needs a re-render to stay in sync.
+                    if (stripManager.mode === 'timeline') {
+                        stripManager.rerenderStripOnly();
+                    }
                 }
 
                 unsavedChangesManager.markDirty();
