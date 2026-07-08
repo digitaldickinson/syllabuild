@@ -585,7 +585,8 @@
         }
 
         .week-tab-timeline-num {
-            font-size: var(--font-sm);
+            font-size: var(--font-xs);
+            font-weight: 700;
         }
 
         .week-tab-timeline-date {
@@ -593,20 +594,31 @@
             color: var(--text-muted);
         }
 
+        .week-tab-timeline-bar-track {
+            width: 100%;
+            height: 44px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            border-bottom: 2px solid rgba(21, 32, 51, 0.15);
+            margin-bottom: var(--space-1);
+            position: relative;
+        }
+
         .week-tab-timeline-bar {
-            width: 60%;
-            align-self: center;
+            width: 45%;
             background: var(--accent-color);
-            border-radius: 3px 3px 0 0;
-            margin-top: var(--space-1);
+            border-radius: 2px 2px 0 0;
         }
 
         .week-tab-timeline-dot {
+            position: absolute;
+            top: -2px;
+            right: 6px;
             width: 8px;
             height: 8px;
             border-radius: 50%;
             background: #ef4444;
-            margin-top: var(--space-1);
         }
 
         .week-board-columns {
@@ -670,7 +682,17 @@
 
         .week-tab-timeline {
             align-items: center;
-            min-height: 90px;
+            justify-content: flex-end;
+            min-height: 110px;
+            padding: var(--space-2) var(--space-1);
+            border-radius: var(--radius-sm);
+            box-shadow: none;
+        }
+
+        .week-tab-timeline:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: var(--accent-color);
         }
 
         .week-tab-board {
@@ -1814,14 +1836,16 @@
                     for (let i = 1; i <= teachingWeeks; i++) {
                         const weekDate = dateUtils.getWeekStartDate(effectiveStartDate, i);
                         const dayCount = WEEKDAY_DEFS.filter(([code]) => !!data[`week-${i}-day-${code}`]).length;
-                        const barHeight = dayCount === 0 ? 4 : 8 + dayCount * 6;
+                        const barHeight = dayCount === 0 ? 4 : 10 + dayCount * 7;
                         const assessmentType = data[`week-${i}-assessment-type`] || 'none';
                         const tooltip = this.buildWeekTooltip(data, i);
                         html += `<div class="week-tab week-tab-timeline ${i === activeWeek ? 'active' : ''}" data-week="${i}"${tooltip ? ` title="${escapeHtml(tooltip)}"` : ''}>
+                            <div class="week-tab-timeline-bar-track">
+                                <div class="week-tab-timeline-bar" style="height:${barHeight}px;" title="${dayCount} contact day${dayCount === 1 ? '' : 's'}"></div>
+                                ${assessmentType !== 'none' ? `<span class="week-tab-timeline-dot" title="${escapeHtml(assessmentType)}"></span>` : ''}
+                            </div>
                             <span class="week-tab-timeline-num">Wk ${i}</span>
                             <span class="week-tab-timeline-date">${weekDate ? escapeHtml(weekDate) : ''}</span>
-                            <div class="week-tab-timeline-bar" style="height:${barHeight}px;" title="${dayCount} contact day${dayCount === 1 ? '' : 's'}"></div>
-                            ${assessmentType !== 'none' ? `<span class="week-tab-timeline-dot" title="${escapeHtml(assessmentType)}"></span>` : ''}
                         </div>`;
                     }
                     return html;
@@ -2655,11 +2679,8 @@
                         selectedCard.classList.remove('hidden');
                         selectedCard.classList.add('active');
                     }
-                    // Selecting a week from Timeline/Board mode returns the strip to Cards
-                    // mode, so the tab strip and open card are visible together.
-                    if (stripManager.mode !== 'cards') {
-                        stripManager.setMode('cards');
-                    }
+                    // Note: the strip deliberately stays in whatever mode (Cards/Timeline/
+                    // Board) it was already in - jumping to a week no longer resets it.
                 }
 
                 if (e.target.closest('.week-card')) {
