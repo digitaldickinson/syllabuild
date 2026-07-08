@@ -1248,11 +1248,11 @@
             <button id="history-button">History</button>
             <button id="export-word-button">Export to Word</button>
             <button id="export-calendar-button">Export Calendar</button>
-            <button id="toggle-drawer">Configure</button>
+            <button id="toggle-drawer" aria-expanded="false" aria-controls="config-drawer">Configure</button>
         </div>
     </header>
 
-    <aside id="config-drawer" class="drawer">
+    <aside id="config-drawer" class="drawer" aria-hidden="true" inert>
         <form id="config-form">
             <fieldset>
                 <legend>Registry</legend>
@@ -1376,9 +1376,9 @@
         </div>
     </div>
 
-    <div id="history-modal" class="modal-overlay">
+    <div id="history-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="history-modal-title" aria-hidden="true">
         <div class="modal-content history-modal-content">
-            <h4>History</h4>
+            <h4 id="history-modal-title">History</h4>
             <div class="changelog-add-row">
                 <input type="text" id="changelog-note-input" placeholder="Add a note...">
                 <button type="button" id="changelog-add-button">Add entry</button>
@@ -1406,8 +1406,21 @@
 
             // --- UI Interaction ---
             toggleButton.addEventListener('click', () => {
-                drawer.classList.toggle('open');
+                const isOpen = drawer.classList.toggle('open');
                 mainContent.classList.toggle('drawer-open');
+                toggleButton.setAttribute('aria-expanded', String(isOpen));
+                drawer.toggleAttribute('inert', !isOpen);
+                drawer.setAttribute('aria-hidden', String(!isOpen));
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && drawer.classList.contains('open')) {
+                    drawer.classList.remove('open');
+                    mainContent.classList.remove('drawer-open');
+                    toggleButton.setAttribute('aria-expanded', 'false');
+                    drawer.setAttribute('aria-hidden', 'true');
+                    drawer.setAttribute('inert', '');
+                }
             });
 
             function escapeHtml(str) {
@@ -1437,11 +1450,24 @@
                         toolbar: [['bold', 'italic', 'link'], [{ list: 'ordered' }, { list: 'bullet' }]]
                     }
                 },
-                initAll() {
+                // Called on a full week rebuild (teaching weeks / dates changed). All old
+                // mounts are gone with the old DOM, so the registry is cleared, then only
+                // the currently active week's editors are created - not all of them.
+                initActiveOnly(activeWeek) {
                     Object.keys(quillInstances).forEach((key) => delete quillInstances[key]);
+                    this.ensureInitialized(activeWeek);
+                },
+                // Called whenever a week becomes active. Creates that week's editors on
+                // first view only - a week whose editors already exist is left untouched,
+                // so its live content isn't disturbed by switching away and back.
+                ensureInitialized(weekNumber) {
+                    const card = document.getElementById(`week-${weekNumber}-card`);
+                    if (!card) return;
 
-                    workspace.querySelectorAll('.quill-editor-wrapper').forEach((wrapper) => {
+                    card.querySelectorAll('.quill-editor-wrapper').forEach((wrapper) => {
                         const targetId = wrapper.dataset.target;
+                        if (quillInstances[targetId]) return;
+
                         const hiddenInput = document.getElementById(targetId);
                         const mount = wrapper.firstElementChild;
                         if (!hiddenInput || !mount) return;
@@ -2009,10 +2035,32 @@
                     }
                     // Assemble the new UI
                     workspace.innerHTML = `<div class="week-timeline-wrapper">${stripManager.buildModeButtonsHtml()}<div class="week-timeline">${stripManager.buildStripHtml(data, teachingWeeks, activeWeek)}</div></div><div class="week-content-area">${contentHtml}</div>`;
-                    richTextManager.initAll();
+                    richTextManager.initActiveOnly(activeWeek);
                     this.updateWeekProgressStates();
                     if (stripManager.mode === 'board') stripManager.groupBoardCards();
                     return data;
+                },
+
+                refreshPrepChecklists(data) {
+                    const hasLectures = (parseFloat(data.lecture) || 0) > 0;
+                    const hasWorkshops = (parseFloat(data.workshop) || 0) > 0;
+                    const hasSeminars = (parseFloat(data.seminar) || 0) > 0;
+                    const hasTutorials = (parseFloat(data.tutorial) || 0) > 0;
+                    const teachingWeeks = parseInt(data.teachingWeeks, 10) || 0;
+
+                    for (let i = 1; i <= teachingWeeks; i++) {
+                        const checklist = document.getElementById(`week-${i}-prep-checklist`);
+                        if (!checklist) continue;
+
+                        checklist.innerHTML = `
+                            ${hasLectures ? `<li><label><input type="checkbox" name="week-${i}-prep-lecture" ${data[`week-${i}-prep-lecture`] ? 'checked' : ''}> Lectures prepared</label></li>` : ''}
+                            ${hasWorkshops ? `<li><label><input type="checkbox" name="week-${i}-prep-workshop" ${data[`week-${i}-prep-workshop`] ? 'checked' : ''}>Workshops prepared </label></li>` : ''}
+                            ${hasSeminars ? `<li><label><input type="checkbox" name="week-${i}-prep-seminar" ${data[`week-${i}-prep-seminar`] ? 'checked' : ''}> Seminars prepared</label></li>` : ''}
+                            ${hasTutorials ? `<li><label><input type="checkbox" name="week-${i}-prep-tutorial" ${data[`week-${i}-prep-tutorial`] ? 'checked' : ''}> Tutorials prepared</label></li>` : ''}
+                        `;
+                    }
+
+                    this.updateWeekProgressStates();
                 },
 
                 createWeekCard(weekNumber, data) {
@@ -2061,7 +2109,7 @@
                                 </div>
                                 <div class="week-meta">
                                     <h5>Completion</h5>
-                                    <ul class="checklist">
+                                    <ul class="checklist" id="week-${weekNumber}-prep-checklist">
                                         ${hasLectures ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-lecture" ${data[`week-${weekNumber}-prep-lecture`] ? 'checked' : ''}> Lectures prepared</label></li>` : ''}
                                         ${hasWorkshops ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-workshop" ${data[`week-${weekNumber}-prep-workshop`] ? 'checked' : ''}>Workshops prepared </label></li>` : ''}
                                         ${hasSeminars ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-seminar" ${data[`week-${weekNumber}-prep-seminar`] ? 'checked' : ''}> Seminars prepared</label></li>` : ''}
@@ -2238,12 +2286,46 @@
 
             // --- Versioning / Changelog Manager ---
             const changelogManager = {
+                lastFocusedElement: null,
                 open() {
                     this.renderList();
-                    document.getElementById('history-modal').classList.add('visible');
+                    this.lastFocusedElement = document.activeElement;
+                    const modal = document.getElementById('history-modal');
+                    modal.classList.add('visible');
+                    modal.removeAttribute('aria-hidden');
+                    document.addEventListener('keydown', changelogManager.handleKeydown);
+                    const firstFocusable = modal.querySelector('input, button');
+                    if (firstFocusable) firstFocusable.focus();
                 },
                 close() {
-                    document.getElementById('history-modal').classList.remove('visible');
+                    const modal = document.getElementById('history-modal');
+                    modal.classList.remove('visible');
+                    modal.setAttribute('aria-hidden', 'true');
+                    document.removeEventListener('keydown', changelogManager.handleKeydown);
+                    if (changelogManager.lastFocusedElement) changelogManager.lastFocusedElement.focus();
+                },
+                handleKeydown(e) {
+                    const modal = document.getElementById('history-modal');
+                    if (e.key === 'Escape') {
+                        changelogManager.close();
+                        return;
+                    }
+                    if (e.key !== 'Tab') return;
+
+                    const focusable = Array.from(modal.querySelectorAll('input, button, [href], select, textarea'))
+                        .filter((el) => !el.disabled && el.offsetParent !== null);
+                    if (focusable.length === 0) return;
+
+                    const first = focusable[0];
+                    const last = focusable[focusable.length - 1];
+
+                    if (e.shiftKey && document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    } else if (!e.shiftKey && document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
                 },
                 addEntry(note) {
                     const trimmed = (note || '').trim();
@@ -2690,12 +2772,18 @@
                 calculator.update();
                 syllabusHeaderManager.update();
 
-                const triggersRebuild = ['teaching-weeks', 'startDate', 'mmuTerm', 'dateSource', 'lecture', 'workshop', 'seminar', 'tutorial'].includes(e.target.name)
-                    || ['teaching-weeks', 'start-date', 'mmu-term'].includes(e.target.id);
+                const structuralFields = ['teaching-weeks', 'startDate', 'mmuTerm', 'dateSource'];
+                const hoursFields = ['lecture', 'workshop', 'seminar', 'tutorial'];
 
-                if (triggersRebuild) {
+                const triggersFullRebuild = structuralFields.includes(e.target.name)
+                    || ['teaching-weeks', 'start-date', 'mmu-term'].includes(e.target.id);
+                const triggersChecklistRefresh = hoursFields.includes(e.target.name);
+
+                if (triggersFullRebuild) {
                     const rebuiltData = workspaceManager.generateWeeks();
                     workspaceManager.populateWeeks(rebuiltData || state.getFormData());
+                } else if (triggersChecklistRefresh) {
+                    workspaceManager.refreshPrepChecklists(state.getFormData());
                 }
 
                 unsavedChangesManager.markDirty();
@@ -2725,6 +2813,7 @@
                         selectedCard.classList.remove('hidden');
                         selectedCard.classList.add('active');
                     }
+                    richTextManager.ensureInitialized(weekNumber);
                     // Note: the strip deliberately stays in whatever mode (Cards/Timeline/
                     // Board) it was already in - jumping to a week no longer resets it.
                 }
