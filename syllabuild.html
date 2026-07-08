@@ -1434,7 +1434,7 @@
                     };
 
                     // One-time migration: the old free-text "Assessment Alignment" field was
-                    // replaced by structured assessment-type/date fields. Fold any old
+                    // replaced by the structured assessment-type field. Fold any old
                     // content into Staff Notes rather than silently discarding it.
                     const migrationWeekCount = Math.min(parseInt(data.teachingWeeks, 10) || 0, 52);
                     for (let i = 1; i <= migrationWeekCount; i++) {
@@ -1500,6 +1500,7 @@
                     const moodleLinkEl = document.getElementById('header-moodle-link');
 
                     const unitTitle = data.unitTitle || '[Unit Title]';
+                    const unitCode = (data.unitCode || '').trim();
                     const moduleDescription = data.moduleDescription || '[Module Description]';
                     const moduleLeader = data.moduleLeader;
                     const creditSize = data.creditSize || '0';
@@ -1507,7 +1508,7 @@
                     const readingListUrl = (data.readingListUrl || '').trim();
                     const moodleUrl = (data.moodleUrl || '').trim();
 
-                    if (titleEl) titleEl.textContent = unitTitle;
+                    if (titleEl) titleEl.textContent = unitCode ? `${unitCode}: ${unitTitle}` : unitTitle;
                     if (metaEl) metaEl.textContent = `A ${creditSize} credit unit at Level ${academicLevel}`;
                     if (leaderEl) leaderEl.textContent = moduleLeader ? `Module Leader: ${moduleLeader}` : 'Module Leader: [Not Assigned]';
                     if (descriptionEl) descriptionEl.textContent = moduleDescription;
@@ -1632,7 +1633,6 @@
                     const readingLabel = data[`week-${weekNumber}-reading-label`] || 'Extra Information';
                     const staffNotes = data[`week-${weekNumber}-staff-notes`] || '';
                     const assessmentType = data[`week-${weekNumber}-assessment-type`] || 'none';
-                    const assessmentDate = data[`week-${weekNumber}-assessment-date`] || '';
 
                     const assessmentOptions = [
                         ['none', 'None'],
@@ -1663,7 +1663,25 @@
                                     <input type="hidden" id="week-${weekNumber}-reading" name="week-${weekNumber}-reading" value="${escapeHtml(data[`week-${weekNumber}-reading`] || '')}">
                                 </div>
                                 <div class="week-meta">
-                                    <h5>Management</h5>
+                                    <h5>Completion</h5>
+                                    <ul class="checklist">
+                                        ${hasLectures ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-lecture"> Lectures prepared</label></li>` : ''}
+                                        ${hasWorkshops ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-workshop">Workshops prepared </label></li>` : ''}
+                                        ${hasSeminars ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-seminar"> Seminars prepared</label></li>` : ''}
+                                        ${hasTutorials ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-tutorial"> Tutorials prepared</label></li>` : ''}
+                                    </ul>
+                                    <ul class="checklist" style="margin-top: var(--space-4);">
+                                        <li>
+                                            <label><input type="checkbox" name="week-${weekNumber}-published" ${data[`week-${weekNumber}-published`] ? 'checked' : ''}> Published to Moodle</label>
+                                        </li>
+                                    </ul>
+                                    <div class="week-export-section">
+                                        <button type="button" class="export-week-button" data-week="${weekNumber}">Export Week HTML</button>
+                                        <p class="week-export-caption">Cut and paste the HTML into a VLE Text And Media area</p>
+                                        <textarea id="week-${weekNumber}-export" style="display: none; width: 100%; margin-top: var(--space-3); min-height: 150px; font-family: monospace; font-size: var(--font-xs);" readonly></textarea>
+                                    </div>
+
+                                    <h5 style="margin-top: var(--space-4);">Management</h5>
                                     <label style="margin-top: var(--space-3);">Contact Days</label>
                                     <ul class="checklist contact-days">
                                         ${WEEKDAY_DEFS.map(([code, label, dayIndex]) => {
@@ -1673,15 +1691,8 @@
                                             return `<li><label><input type="checkbox" name="${dayKey}" ${isChecked ? 'checked' : ''}> ${label}${dayDate ? ` <span class="contact-day-date">${dayDate}</span>` : ''}</label></li>`;
                                         }).join('')}
                                     </ul>
-                                    <ul class="checklist" style="margin-top: var(--space-4);">
-                                        ${hasLectures ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-lecture"> Lectures prepared</label></li>` : ''}
-                                        ${hasWorkshops ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-workshop">Workshops prepared </label></li>` : ''}
-                                        ${hasSeminars ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-seminar"> Seminars prepared</label></li>` : ''}
-                                        ${hasTutorials ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-tutorial"> Tutorials prepared</label></li>` : ''}
-                                    </ul>
                                     <label for="week-${weekNumber}-assessment-type" style="margin-top: var(--space-4);">Assessment Type</label>
                                     <select id="week-${weekNumber}-assessment-type" name="week-${weekNumber}-assessment-type">${assessmentOptions}</select>
-                                    <input type="date" id="week-${weekNumber}-assessment-date" name="week-${weekNumber}-assessment-date" class="${assessmentType === 'none' ? 'hidden' : ''}" value="${escapeHtml(assessmentDate)}">
                                     <ul class="checklist" style="margin-top: var(--space-4);">
                                         <li>
                                             <label><input type="checkbox" name="week-${weekNumber}-wil" ${data[`week-${weekNumber}-wil`] ? 'checked' : ''}> Work Informed Learning (WIL)</label>
@@ -1701,16 +1712,6 @@
                                     <label for="week-${weekNumber}-staff-notes" style="margin-top: var(--space-4);">Staff Notes</label>
                                     <textarea id="week-${weekNumber}-staff-notes" name="week-${weekNumber}-staff-notes" class="staff-notes-textarea" placeholder="Private notes for yourself...">${escapeHtml(staffNotes)}</textarea>
                                     <p class="staff-notes-caption">Not included in exports</p>
-                                    <ul class="checklist" style="margin-top: var(--space-4);">
-                                        <li>
-                                            <label><input type="checkbox" name="week-${weekNumber}-published" ${data[`week-${weekNumber}-published`] ? 'checked' : ''}> Published to Moodle</label>
-                                        </li>
-                                    </ul>
-                                    <div class="week-export-section">
-                                        <button type="button" class="export-week-button" data-week="${weekNumber}">Export Week HTML</button>
-                                        <p class="week-export-caption">Cut and paste the HTML into a VLE Text And Media area</p>
-                                        <textarea id="week-${weekNumber}-export" style="display: none; width: 100%; margin-top: var(--space-3); min-height: 150px; font-family: monospace; font-size: var(--font-xs);" readonly></textarea>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1729,7 +1730,6 @@
                         const readingLabelInput = document.getElementById(`${weekPrefix}reading-label`);
                         const staffNotesInput = document.getElementById(`${weekPrefix}staff-notes`);
                         const assessmentTypeSelect = document.getElementById(`${weekPrefix}assessment-type`);
-                        const assessmentDateInput = document.getElementById(`${weekPrefix}assessment-date`);
 
                         if (topicInput) topicInput.value = data[`${weekPrefix}topic`] || '';
                         if (focusInput) focusInput.value = data[`${weekPrefix}focus`] || '';
@@ -1742,12 +1742,7 @@
 
                         // Assessment tracking
                         if (assessmentTypeSelect) {
-                            const assessmentType = data[`${weekPrefix}assessment-type`] || 'none';
-                            assessmentTypeSelect.value = assessmentType;
-                            if (assessmentDateInput) {
-                                assessmentDateInput.value = data[`${weekPrefix}assessment-date`] || '';
-                                assessmentDateInput.classList.toggle('hidden', assessmentType === 'none');
-                            }
+                            assessmentTypeSelect.value = data[`${weekPrefix}assessment-type`] || 'none';
                         }
 
                         // Contact Days checkboxes
@@ -2366,14 +2361,6 @@
                 const modifiedWeek = getWeekNumberFromEventTarget(e.target);
                 if (modifiedWeek && e.target.closest('.week-card')) {
                     getWeekMeta(modifiedWeek).lastModifiedAt = new Date().toISOString();
-                }
-
-                // Assessment date field only makes sense once an assessment type is set
-                if (e.target.matches('select[id$="-assessment-type"]')) {
-                    const dateInput = document.getElementById(e.target.id.replace('-assessment-type', '-assessment-date'));
-                    if (dateInput) {
-                        dateInput.classList.toggle('hidden', e.target.value === 'none');
-                    }
                 }
 
                 if (e.target.matches('input[type="checkbox"]') || e.target.matches('select[id$="-assessment-type"]')) {
