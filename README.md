@@ -30,6 +30,7 @@ Syllabuild bridges the gap between pedagogical software planning and rigid acade
 ### 4. Lightweight & Secure
 * **Local-First State:** Full module configurations save down to a portable, lightweight `.syllabuild` JSON format.
 * **Accidental-Close Protection:** Warns before an accidental back button or tab close if there are unsaved changes, and silently drafts your in-progress work to the browser so it can be recovered after a crash.
+* **Keyboard & Screen Reader Accessible:** Dialogs and panels follow standard WAI-ARIA patterns (focus trapping and restoration in modals, `aria-expanded`/`inert` disclosure for the Configure panel, full Escape-key support).
 * **Zero Infrastructure Requirements:** Written in vanilla JavaScript with an architecture requiring no Node engine runtime, external databases, or server configurations.
 
 ### 5. Multiple Planning Views
