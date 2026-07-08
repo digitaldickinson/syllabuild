@@ -4,6 +4,8 @@
 
 **[Try it live](https://digitaldickinson.github.io/syllabuild/syllabuild.html)** — no download or install required.
 
+**[Quick Guide](https://docs.google.com/document/d/1gR_-4hdF8953cd3MJNFHJvjkWrZjbKCPfRtdgezOcAA/edit?usp=sharing)** — a short walkthrough of the key features.
+
 A local-first, zero-dependency, single-file curriculum design application tailored for UK Higher Education modules. 
 
 Syllabuild bridges the gap between pedagogical software planning and rigid academic administrative compliance. It allows unit leaders to construct rich linear schedules, calculate notional student workloads, map curriculum requirements, and export clean snippets directly to Virtual Learning Environments (VLEs) or validation documents.
