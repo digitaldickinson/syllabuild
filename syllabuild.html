@@ -561,7 +561,13 @@
             margin-bottom: var(--space-3);
         }
 
-        #strip-cycle-button {
+        .strip-mode-buttons {
+            display: flex;
+            gap: var(--space-2);
+            margin-bottom: var(--space-2);
+        }
+
+        .strip-mode-button {
             background: var(--panel-tint);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-pill);
@@ -570,12 +576,12 @@
             font-weight: 600;
             color: var(--text-muted);
             cursor: pointer;
-            margin-bottom: var(--space-2);
         }
 
-        .week-tab-timeline {
-            align-items: center;
-            min-height: 90px;
+        .strip-mode-button.active {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: var(--primary-text-color);
         }
 
         .week-tab-timeline-num {
@@ -623,13 +629,6 @@
             margin-bottom: var(--space-2);
         }
 
-        .week-tab-board {
-            min-height: auto;
-            align-items: flex-start;
-            margin-bottom: var(--space-2);
-            padding: var(--space-2) var(--space-3);
-        }
-
         .week-tab-board-date {
             font-size: var(--font-xs);
             color: var(--text-muted);
@@ -667,6 +666,18 @@
         .week-tab:hover {
             transform: translateY(-1px);
             box-shadow: var(--shadow-sm);
+        }
+
+        .week-tab-timeline {
+            align-items: center;
+            min-height: 90px;
+        }
+
+        .week-tab-board {
+            min-height: auto;
+            align-items: flex-start;
+            margin-bottom: var(--space-2);
+            padding: var(--space-2) var(--space-3);
         }
 
         .week-tab .week-label {
@@ -1739,8 +1750,10 @@
                 mode: 'cards',
                 modes: ['cards', 'timeline', 'board'],
                 modeLabels: { cards: 'Cards', timeline: 'Timeline', board: 'Status board' },
-                modeLabel() {
-                    return this.modeLabels[this.mode];
+                buildModeButtonsHtml() {
+                    return `<div class="strip-mode-buttons">${this.modes.map((mode) =>
+                        `<button type="button" class="strip-mode-button ${mode === this.mode ? 'active' : ''}" data-mode="${mode}">${this.modeLabels[mode]}</button>`
+                    ).join('')}</div>`;
                 },
                 getEffectiveStartDate(data) {
                     return data.dateSource === 'mmu' ? ACADEMIC_CALENDAR[data.mmuTerm]?.date : data.startDate;
@@ -1753,11 +1766,6 @@
                     if (staffNote) parts.push(`Notes: ${staffNote}`);
                     return parts.join('\n');
                 },
-                cycle() {
-                    const idx = this.modes.indexOf(this.mode);
-                    this.mode = this.modes[(idx + 1) % this.modes.length];
-                    this.rerenderStripOnly();
-                },
                 setMode(mode) {
                     if (this.mode === mode) return;
                     this.mode = mode;
@@ -1768,11 +1776,12 @@
                     const teachingWeeks = parseInt(data.teachingWeeks, 10) || 0;
                     const activeWeek = workspaceManager.getActiveWeek();
                     const stripEl = workspace.querySelector('.week-timeline');
-                    const cycleButton = document.getElementById('strip-cycle-button');
                     if (!stripEl) return;
 
                     stripEl.innerHTML = this.buildStripHtml(data, teachingWeeks, activeWeek);
-                    if (cycleButton) cycleButton.textContent = `⇄ ${this.modeLabel()}`;
+                    workspace.querySelectorAll('.strip-mode-button').forEach((button) => {
+                        button.classList.toggle('active', button.dataset.mode === this.mode);
+                    });
 
                     // Reuse the single canonical classifier rather than recomputing status here.
                     workspaceManager.updateWeekProgressStates();
@@ -1921,7 +1930,7 @@
                     const activeWeek = this.getActiveWeek();
 
                     if (teachingWeeks <= 0 || teachingWeeks > 52) {
-                        workspace.innerHTML = '<div class="week-timeline-wrapper"><button type="button" id="strip-cycle-button">⇄ Cards</button><div class="week-timeline"></div></div><div class="week-content-area"><p>Please set a number of teaching weeks between 1 and 52.</p></div>';
+                        workspace.innerHTML = `<div class="week-timeline-wrapper">${stripManager.buildModeButtonsHtml()}<div class="week-timeline"></div></div><div class="week-content-area"><p>Please set a number of teaching weeks between 1 and 52.</p></div>`;
                         return;
                     }
 
@@ -1932,7 +1941,7 @@
                         contentHtml += this.createWeekCard(i, data);
                     }
                     // Assemble the new UI
-                    workspace.innerHTML = `<div class="week-timeline-wrapper"><button type="button" id="strip-cycle-button">⇄ ${stripManager.modeLabel()}</button><div class="week-timeline">${stripManager.buildStripHtml(data, teachingWeeks, activeWeek)}</div></div><div class="week-content-area">${contentHtml}</div>`;
+                    workspace.innerHTML = `<div class="week-timeline-wrapper">${stripManager.buildModeButtonsHtml()}<div class="week-timeline">${stripManager.buildStripHtml(data, teachingWeeks, activeWeek)}</div></div><div class="week-content-area">${contentHtml}</div>`;
                     richTextManager.initAll();
                     this.updateWeekProgressStates();
                     if (stripManager.mode === 'board') stripManager.groupBoardCards();
@@ -2623,8 +2632,9 @@
             });
 
             workspace.addEventListener('click', (e) => {
-                if (e.target.closest('#strip-cycle-button')) {
-                    stripManager.cycle();
+                const modeButton = e.target.closest('.strip-mode-button');
+                if (modeButton) {
+                    stripManager.setMode(modeButton.dataset.mode);
                     return;
                 }
 
