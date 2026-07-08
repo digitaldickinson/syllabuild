@@ -1037,7 +1037,7 @@
                 <label for="academic-level">Academic Level</label>
                 <input type="number" id="academic-level" name="academicLevel" value="4" min="3" max="8">
                 <label for="credit-size">Credit Size</label>
-                <input type="number" id="credit-size" name="creditSize" value="20" required min="0">
+                <input type="number" id="credit-size" name="creditSize" value="15" required min="0">
                 <label for="teaching-weeks">Teaching Weeks</label>
                 <input type="number" id="teaching-weeks" name="teachingWeeks" value="12" required min="1">
             </fieldset>
@@ -1682,7 +1682,10 @@
                                     </div>
 
                                     <h5 style="margin-top: var(--space-4);">Management</h5>
-                                    <label style="margin-top: var(--space-3);">Contact Days</label>
+                                    <label for="week-${weekNumber}-staff-notes" style="margin-top: var(--space-3);">Staff Notes</label>
+                                    <textarea id="week-${weekNumber}-staff-notes" name="week-${weekNumber}-staff-notes" class="staff-notes-textarea" placeholder="Private notes for yourself...">${escapeHtml(staffNotes)}</textarea>
+                                    <p class="staff-notes-caption">Not included in exports</p>
+                                    <label style="margin-top: var(--space-4);">Contact Days</label>
                                     <ul class="checklist contact-days">
                                         ${WEEKDAY_DEFS.map(([code, label, dayIndex]) => {
                                             const dayKey = `week-${weekNumber}-day-${code}`;
@@ -1709,9 +1712,6 @@
                                             <textarea name="week-${weekNumber}-external-factor-notes" class="week-card-textarea ${!data[`week-${weekNumber}-external-factor`] ? 'hidden' : ''}" placeholder="e.g., Bank Holiday, Reading Week...">${data[`week-${weekNumber}-external-factor-notes`] || ''}</textarea>
                                         </li>
                                     </ul>
-                                    <label for="week-${weekNumber}-staff-notes" style="margin-top: var(--space-4);">Staff Notes</label>
-                                    <textarea id="week-${weekNumber}-staff-notes" name="week-${weekNumber}-staff-notes" class="staff-notes-textarea" placeholder="Private notes for yourself...">${escapeHtml(staffNotes)}</textarea>
-                                    <p class="staff-notes-caption">Not included in exports</p>
                                 </div>
                             </div>
                         </div>
