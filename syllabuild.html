@@ -584,25 +584,41 @@
             color: var(--primary-text-color);
         }
 
-        .week-tab-timeline-num {
+        .week-timeline-grid {
+            display: grid;
+            grid-template-rows: repeat(5, auto);
+            gap: 4px 6px;
+            align-items: center;
+            min-width: 100%;
+        }
+
+        .week-timeline-row-label {
+            grid-column: 1;
             font-size: var(--font-xs);
-            font-weight: 700;
-        }
-
-        .week-tab-timeline-date {
-            font-size: 10px;
             color: var(--text-muted);
+            white-space: nowrap;
+            padding-right: var(--space-2);
         }
 
-        .week-tab-timeline-bar-track {
-            width: 100%;
-            height: 44px;
+        .week-timeline-cell {
             display: flex;
-            align-items: flex-end;
+            align-items: center;
             justify-content: center;
-            border-bottom: 2px solid rgba(21, 32, 51, 0.15);
-            margin-bottom: var(--space-1);
+            font-size: var(--font-xs);
+            color: var(--text-muted);
+            min-height: 22px;
             position: relative;
+        }
+
+        .week-timeline-cell--num {
+            font-weight: 700;
+            color: var(--text-color);
+        }
+
+        .week-timeline-cell--bar {
+            height: 44px;
+            align-items: flex-end;
+            border-bottom: 2px solid rgba(21, 32, 51, 0.15);
         }
 
         .week-tab-timeline-bar {
@@ -614,11 +630,27 @@
         .week-tab-timeline-dot {
             position: absolute;
             top: -2px;
-            right: 6px;
+            right: 20%;
             width: 8px;
             height: 8px;
             border-radius: 50%;
             background: #ef4444;
+        }
+
+        .week-timeline-status-cell {
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border-color);
+        }
+
+        .week-timeline-status-cell.pending { background: #3366cc; }
+        .week-timeline-status-cell.partial { background: #f0d07d; }
+        .week-timeline-status-cell.completed { background: #2f6a45; }
+        .week-timeline-status-cell.external-factor { background: #ef4444; }
+
+        .week-tab.active .week-timeline-cell {
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: var(--radius-sm);
         }
 
         .week-board-columns {
@@ -681,18 +713,7 @@
         }
 
         .week-tab-timeline {
-            align-items: center;
-            justify-content: flex-end;
-            min-height: 110px;
-            padding: var(--space-2) var(--space-1);
-            border-radius: var(--radius-sm);
-            box-shadow: none;
-        }
-
-        .week-tab-timeline:hover {
-            transform: none;
-            box-shadow: none;
-            border-color: var(--accent-color);
+            display: contents;
         }
 
         .week-tab-board {
@@ -1780,6 +1801,17 @@
                 getEffectiveStartDate(data) {
                     return data.dateSource === 'mmu' ? ACADEMIC_CALENDAR[data.mmuTerm]?.date : data.startDate;
                 },
+                syncTimelineStatusCells() {
+                    if (this.mode !== 'timeline') return;
+                    const statusKeys = ['pending', 'partial', 'completed', 'external-factor'];
+                    workspace.querySelectorAll('.week-tab-timeline').forEach((tab) => {
+                        const statusCell = tab.querySelector('.week-timeline-status-cell');
+                        if (!statusCell) return;
+                        statusCell.classList.remove(...statusKeys);
+                        const activeStatus = statusKeys.find((key) => tab.classList.contains(key));
+                        if (activeStatus) statusCell.classList.add(activeStatus);
+                    });
+                },
                 buildWeekTooltip(data, i) {
                     const topic = (data[`week-${i}-topic`] || '').trim();
                     const staffNote = (data[`week-${i}-staff-notes`] || '').trim();
@@ -1832,23 +1864,34 @@
                 },
                 buildTimelineHtml(data, teachingWeeks, activeWeek) {
                     const effectiveStartDate = this.getEffectiveStartDate(data);
-                    let html = '';
+
+                    const rowLabels = ['Week', 'W/B', 'Contact days', 'Assessment', 'Status'];
+                    let labelsHtml = rowLabels.map((label, rowIdx) =>
+                        `<div class="week-timeline-row-label" style="grid-row:${rowIdx + 1};">${label}</div>`
+                    ).join('');
+
+                    let weeksHtml = '';
                     for (let i = 1; i <= teachingWeeks; i++) {
+                        const col = i + 1; // column 1 is the label column
                         const weekDate = dateUtils.getWeekStartDate(effectiveStartDate, i);
                         const dayCount = WEEKDAY_DEFS.filter(([code]) => !!data[`week-${i}-day-${code}`]).length;
                         const barHeight = dayCount === 0 ? 4 : 10 + dayCount * 7;
                         const assessmentType = data[`week-${i}-assessment-type`] || 'none';
                         const tooltip = this.buildWeekTooltip(data, i);
-                        html += `<div class="week-tab week-tab-timeline ${i === activeWeek ? 'active' : ''}" data-week="${i}"${tooltip ? ` title="${escapeHtml(tooltip)}"` : ''}>
-                            <div class="week-tab-timeline-bar-track">
+
+                        weeksHtml += `<div class="week-tab week-tab-timeline ${i === activeWeek ? 'active' : ''}" data-week="${i}"${tooltip ? ` title="${escapeHtml(tooltip)}"` : ''}>
+                            <div class="week-timeline-cell week-timeline-cell--num" style="grid-column:${col}; grid-row:1;">${i}</div>
+                            <div class="week-timeline-cell" style="grid-column:${col}; grid-row:2;">${weekDate ? escapeHtml(weekDate) : ''}</div>
+                            <div class="week-timeline-cell week-timeline-cell--bar" style="grid-column:${col}; grid-row:3;">
                                 <div class="week-tab-timeline-bar" style="height:${barHeight}px;" title="${dayCount} contact day${dayCount === 1 ? '' : 's'}"></div>
                                 ${assessmentType !== 'none' ? `<span class="week-tab-timeline-dot" title="${escapeHtml(assessmentType)}"></span>` : ''}
                             </div>
-                            <span class="week-tab-timeline-num">Wk ${i}</span>
-                            <span class="week-tab-timeline-date">${weekDate ? escapeHtml(weekDate) : ''}</span>
+                            <div class="week-timeline-cell" style="grid-column:${col}; grid-row:4;">${assessmentType !== 'none' ? '●' : ''}</div>
+                            <div class="week-timeline-cell week-timeline-status-cell" style="grid-column:${col}; grid-row:5;"></div>
                         </div>`;
                     }
-                    return html;
+
+                    return `<div class="week-timeline-grid" style="grid-template-columns: 110px repeat(${teachingWeeks}, minmax(40px, 1fr));">${labelsHtml}${weeksHtml}</div>`;
                 },
                 buildBoardSkeletonHtml(data, teachingWeeks, activeWeek) {
                     const effectiveStartDate = this.getEffectiveStartDate(data);
@@ -2181,6 +2224,9 @@
                     dashboardSummaryManager.update();
                     if (stripManager.mode === 'board') {
                         stripManager.groupBoardCards();
+                    }
+                    if (stripManager.mode === 'timeline') {
+                        stripManager.syncTimelineStatusCells();
                     }
                 },
                 getActiveWeek() {
