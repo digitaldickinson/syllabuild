@@ -377,6 +377,117 @@
             box-shadow: var(--shadow-md);
         }
 
+        .overview-tray {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(220, 229, 238, 0.9);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+            margin-bottom: var(--space-6);
+            box-shadow: var(--shadow-md);
+            overflow-x: auto;
+        }
+
+        .overview-tabs {
+            display: flex;
+            gap: var(--space-2);
+            margin-bottom: var(--space-4);
+        }
+
+        .overview-tab {
+            background: var(--panel-tint);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-pill);
+            padding: var(--space-1) var(--space-4);
+            font-size: var(--font-sm);
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .overview-tab.active {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: var(--primary-text-color);
+        }
+
+        .overview-timeline-grid {
+            display: grid;
+            gap: 4px;
+            align-items: center;
+            min-width: 640px;
+        }
+
+        .overview-timeline-cell {
+            text-align: center;
+            font-size: var(--font-xs);
+            color: var(--text-muted);
+        }
+
+        .overview-day-bar {
+            align-self: end;
+            border-radius: 3px 3px 0 0;
+            background: var(--accent-color);
+        }
+
+        .overview-status-strip {
+            height: 6px;
+            border-radius: 3px;
+        }
+
+        .overview-status-strip.pending { background: #3366cc; }
+        .overview-status-strip.partial { background: #f0d07d; }
+        .overview-status-strip.completed { background: #2f6a45; }
+        .overview-status-strip.external-factor { background: #ef4444; }
+
+        .overview-marker-assessment {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ef4444;
+            margin: 0 auto;
+        }
+
+        .overview-board-columns {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(150px, 1fr));
+            gap: var(--space-3);
+            min-width: 640px;
+        }
+
+        .overview-board-column h5 {
+            font-size: var(--font-sm);
+            margin-bottom: var(--space-2);
+            color: var(--text-muted);
+        }
+
+        .overview-card {
+            background: var(--panel-tint);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: var(--space-2) var(--space-3);
+            margin-bottom: var(--space-2);
+            font-size: var(--font-sm);
+        }
+
+        .overview-card .overview-card-date {
+            color: var(--text-muted);
+            font-size: var(--font-xs);
+        }
+
+        .overview-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 1px 6px;
+            border-radius: var(--radius-pill);
+            margin-top: 4px;
+            margin-right: 4px;
+        }
+
+        .overview-badge.stale { background: #fef0c7; color: #8a5a00; }
+        .overview-badge.assessment { background: #fde3e3; color: #a32d2d; }
+        .overview-badge.external-factor { background: #fde3e3; color: #a32d2d; }
+
         .syllabus-header {
             background-color: var(--surface-color);
             border: 1px solid var(--border-color);
@@ -444,6 +555,95 @@
             grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
             gap: var(--space-3);
             margin-bottom: var(--space-3);
+        }
+
+        .week-timeline-wrapper {
+            margin-bottom: var(--space-3);
+        }
+
+        #strip-cycle-button {
+            background: var(--panel-tint);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-pill);
+            padding: 4px 12px;
+            font-size: var(--font-xs);
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            margin-bottom: var(--space-2);
+        }
+
+        .week-tab-timeline {
+            align-items: center;
+            min-height: 90px;
+        }
+
+        .week-tab-timeline-num {
+            font-size: var(--font-sm);
+        }
+
+        .week-tab-timeline-date {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .week-tab-timeline-bar {
+            width: 60%;
+            align-self: center;
+            background: var(--accent-color);
+            border-radius: 3px 3px 0 0;
+            margin-top: var(--space-1);
+        }
+
+        .week-tab-timeline-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+            margin-top: var(--space-1);
+        }
+
+        .week-board-columns {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(140px, 1fr));
+            gap: var(--space-3);
+            width: 100%;
+        }
+
+        .week-board-column {
+            background: var(--panel-tint-2);
+            border-radius: var(--radius-md);
+            padding: var(--space-2);
+            min-height: 60px;
+        }
+
+        .week-board-column h5 {
+            font-size: var(--font-sm);
+            color: var(--text-muted);
+            margin-bottom: var(--space-2);
+        }
+
+        .week-tab-board {
+            min-height: auto;
+            align-items: flex-start;
+            margin-bottom: var(--space-2);
+            padding: var(--space-2) var(--space-3);
+        }
+
+        .week-tab-board-date {
+            font-size: var(--font-xs);
+            color: var(--text-muted);
+        }
+
+        .week-tab-board-note {
+            font-size: var(--font-xs);
+            color: var(--text-muted);
+            margin-top: 4px;
+            font-style: italic;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
         }
 
         .week-tab {
@@ -1535,6 +1735,134 @@
                 }
             };
 
+            const stripManager = {
+                mode: 'cards',
+                modes: ['cards', 'timeline', 'board'],
+                modeLabels: { cards: 'Cards', timeline: 'Timeline', board: 'Status board' },
+                modeLabel() {
+                    return this.modeLabels[this.mode];
+                },
+                getEffectiveStartDate(data) {
+                    return data.dateSource === 'mmu' ? ACADEMIC_CALENDAR[data.mmuTerm]?.date : data.startDate;
+                },
+                buildWeekTooltip(data, i) {
+                    const topic = (data[`week-${i}-topic`] || '').trim();
+                    const staffNote = (data[`week-${i}-staff-notes`] || '').trim();
+                    const parts = [];
+                    if (topic) parts.push(topic);
+                    if (staffNote) parts.push(`Notes: ${staffNote}`);
+                    return parts.join('\n');
+                },
+                cycle() {
+                    const idx = this.modes.indexOf(this.mode);
+                    this.mode = this.modes[(idx + 1) % this.modes.length];
+                    this.rerenderStripOnly();
+                },
+                setMode(mode) {
+                    if (this.mode === mode) return;
+                    this.mode = mode;
+                    this.rerenderStripOnly();
+                },
+                rerenderStripOnly() {
+                    const data = state.getFormData();
+                    const teachingWeeks = parseInt(data.teachingWeeks, 10) || 0;
+                    const activeWeek = workspaceManager.getActiveWeek();
+                    const stripEl = workspace.querySelector('.week-timeline');
+                    const cycleButton = document.getElementById('strip-cycle-button');
+                    if (!stripEl) return;
+
+                    stripEl.innerHTML = this.buildStripHtml(data, teachingWeeks, activeWeek);
+                    if (cycleButton) cycleButton.textContent = `⇄ ${this.modeLabel()}`;
+
+                    // Reuse the single canonical classifier rather than recomputing status here.
+                    workspaceManager.updateWeekProgressStates();
+
+                    if (this.mode === 'board') this.groupBoardCards();
+                },
+                buildStripHtml(data, teachingWeeks, activeWeek) {
+                    if (teachingWeeks <= 0) return '';
+                    if (this.mode === 'timeline') return this.buildTimelineHtml(data, teachingWeeks, activeWeek);
+                    if (this.mode === 'board') return this.buildBoardSkeletonHtml(data, teachingWeeks, activeWeek);
+                    return this.buildCardsHtml(data, teachingWeeks, activeWeek);
+                },
+                buildCardsHtml(data, teachingWeeks, activeWeek) {
+                    const effectiveStartDate = this.getEffectiveStartDate(data);
+                    let html = '';
+                    for (let i = 1; i <= teachingWeeks; i++) {
+                        const weekDate = dateUtils.getWeekStartDate(effectiveStartDate, i);
+                        const tooltip = this.buildWeekTooltip(data, i);
+                        html += `<div class="week-tab ${i === activeWeek ? 'active' : ''}" data-week="${i}"${tooltip ? ` title="${escapeHtml(tooltip)}"` : ''}>
+                            <span class="week-label">Week</span>
+                            <span class="week-number">${i}</span>
+                            ${weekDate ? `<span class="week-date">W/B: ${weekDate}</span>` : ''}
+                        </div>`;
+                    }
+                    return html;
+                },
+                buildTimelineHtml(data, teachingWeeks, activeWeek) {
+                    const effectiveStartDate = this.getEffectiveStartDate(data);
+                    let html = '';
+                    for (let i = 1; i <= teachingWeeks; i++) {
+                        const weekDate = dateUtils.getWeekStartDate(effectiveStartDate, i);
+                        const dayCount = WEEKDAY_DEFS.filter(([code]) => !!data[`week-${i}-day-${code}`]).length;
+                        const barHeight = dayCount === 0 ? 4 : 8 + dayCount * 6;
+                        const assessmentType = data[`week-${i}-assessment-type`] || 'none';
+                        const tooltip = this.buildWeekTooltip(data, i);
+                        html += `<div class="week-tab week-tab-timeline ${i === activeWeek ? 'active' : ''}" data-week="${i}"${tooltip ? ` title="${escapeHtml(tooltip)}"` : ''}>
+                            <span class="week-tab-timeline-num">Wk ${i}</span>
+                            <span class="week-tab-timeline-date">${weekDate ? escapeHtml(weekDate) : ''}</span>
+                            <div class="week-tab-timeline-bar" style="height:${barHeight}px;" title="${dayCount} contact day${dayCount === 1 ? '' : 's'}"></div>
+                            ${assessmentType !== 'none' ? `<span class="week-tab-timeline-dot" title="${escapeHtml(assessmentType)}"></span>` : ''}
+                        </div>`;
+                    }
+                    return html;
+                },
+                buildBoardSkeletonHtml(data, teachingWeeks, activeWeek) {
+                    const effectiveStartDate = this.getEffectiveStartDate(data);
+                    const columns = [
+                        { key: 'external-factor', label: 'External factor' },
+                        { key: 'pending', label: 'Pending' },
+                        { key: 'partial', label: 'Partial' },
+                        { key: 'completed', label: 'Completed' }
+                    ];
+                    const columnsHtml = columns.map(({ key, label }) =>
+                        `<div class="week-board-column" id="board-col-${key}"><h5>${label}</h5></div>`
+                    ).join('');
+
+                    let cardsHtml = '';
+                    for (let i = 1; i <= teachingWeeks; i++) {
+                        const weekDate = dateUtils.getWeekStartDate(effectiveStartDate, i);
+                        const topic = (data[`week-${i}-topic`] || '').trim();
+                        const assessmentType = data[`week-${i}-assessment-type`] || 'none';
+                        const isStale = weekHasContent(i) && isWeekStale(i);
+                        const staffNote = (data[`week-${i}-staff-notes`] || '').trim();
+                        const staffNoteShort = staffNote.length > 80 ? `${staffNote.slice(0, 80)}…` : staffNote;
+                        const badges = [
+                            isStale ? '<span class="overview-badge stale">Changed since export</span>' : '',
+                            assessmentType !== 'none' ? `<span class="overview-badge assessment">${escapeHtml(assessmentType)}</span>` : ''
+                        ].join('');
+                        cardsHtml += `<div class="week-tab week-tab-board ${i === activeWeek ? 'active' : ''}" data-week="${i}">
+                            <div>Week ${i}${topic ? `: ${escapeHtml(topic)}` : ''}</div>
+                            ${weekDate ? `<div class="week-tab-board-date">W/B: ${escapeHtml(weekDate)}</div>` : ''}
+                            ${badges}
+                            ${staffNoteShort ? `<div class="week-tab-board-note" title="${escapeHtml(staffNote)}">${escapeHtml(staffNoteShort)}</div>` : ''}
+                        </div>`;
+                    }
+
+                    return `<div class="week-board-columns">${columnsHtml}</div><div class="week-board-staging hidden">${cardsHtml}</div>`;
+                },
+                groupBoardCards() {
+                    const staging = workspace.querySelector('.week-board-staging');
+                    if (!staging) return;
+                    const columnKeys = ['external-factor', 'pending', 'partial', 'completed'];
+                    Array.from(staging.querySelectorAll('.week-tab-board')).forEach((card) => {
+                        const statusKey = columnKeys.find((key) => card.classList.contains(key)) || 'pending';
+                        const column = document.getElementById(`board-col-${statusKey}`);
+                        if (column) column.appendChild(card);
+                    });
+                }
+            };
+
             // --- Dashboard Summary Manager ---
             // Always derived live from the rendered week tabs/fields, never a
             // separate data model, so it can't drift out of sync with the DOM.
@@ -1591,31 +1919,24 @@
                     const data = state.getFormData();
                     const teachingWeeks = parseInt(data.teachingWeeks, 10) || 0;
                     const activeWeek = this.getActiveWeek();
-                    
+
                     if (teachingWeeks <= 0 || teachingWeeks > 52) {
-                        workspace.innerHTML = '<div class="week-timeline"></div><div class="week-content-area"><p>Please set a number of teaching weeks between 1 and 52.</p></div>';
+                        workspace.innerHTML = '<div class="week-timeline-wrapper"><button type="button" id="strip-cycle-button">⇄ Cards</button><div class="week-timeline"></div></div><div class="week-content-area"><p>Please set a number of teaching weeks between 1 and 52.</p></div>';
                         return;
                     }
 
-                    let timelineHtml = '';
                     let contentHtml = '';
 
                     for (let i = 1; i <= teachingWeeks; i++) {
-                        const effectiveStartDate = data.dateSource === 'mmu' ? ACADEMIC_CALENDAR[data.mmuTerm]?.date : data.startDate;
-                        const weekDate = dateUtils.getWeekStartDate(effectiveStartDate, i);
-                        // Add a tab for each week to the timeline
-                        timelineHtml += `<div class="week-tab ${i === activeWeek ? 'active' : ''}" data-week="${i}">
-                            <span class="week-label">Week</span>
-                            <span class="week-number">${i}</span>
-                            ${weekDate ? `<span class="week-date">W/B: ${weekDate}</span>` : ''}
-                        </div>`;
                         // Create the content card for each week
                         contentHtml += this.createWeekCard(i, data);
                     }
                     // Assemble the new UI
-                    workspace.innerHTML = `<div class="week-timeline">${timelineHtml}</div><div class="week-content-area">${contentHtml}</div>`;
+                    workspace.innerHTML = `<div class="week-timeline-wrapper"><button type="button" id="strip-cycle-button">⇄ ${stripManager.modeLabel()}</button><div class="week-timeline">${stripManager.buildStripHtml(data, teachingWeeks, activeWeek)}</div></div><div class="week-content-area">${contentHtml}</div>`;
                     richTextManager.initAll();
                     this.updateWeekProgressStates();
+                    if (stripManager.mode === 'board') stripManager.groupBoardCards();
+                    return data;
                 },
 
                 createWeekCard(weekNumber, data) {
@@ -1665,10 +1986,10 @@
                                 <div class="week-meta">
                                     <h5>Completion</h5>
                                     <ul class="checklist">
-                                        ${hasLectures ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-lecture"> Lectures prepared</label></li>` : ''}
-                                        ${hasWorkshops ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-workshop">Workshops prepared </label></li>` : ''}
-                                        ${hasSeminars ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-seminar"> Seminars prepared</label></li>` : ''}
-                                        ${hasTutorials ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-tutorial"> Tutorials prepared</label></li>` : ''}
+                                        ${hasLectures ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-lecture" ${data[`week-${weekNumber}-prep-lecture`] ? 'checked' : ''}> Lectures prepared</label></li>` : ''}
+                                        ${hasWorkshops ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-workshop" ${data[`week-${weekNumber}-prep-workshop`] ? 'checked' : ''}>Workshops prepared </label></li>` : ''}
+                                        ${hasSeminars ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-seminar" ${data[`week-${weekNumber}-prep-seminar`] ? 'checked' : ''}> Seminars prepared</label></li>` : ''}
+                                        ${hasTutorials ? `<li><label><input type="checkbox" name="week-${weekNumber}-prep-tutorial" ${data[`week-${weekNumber}-prep-tutorial`] ? 'checked' : ''}> Tutorials prepared</label></li>` : ''}
                                     </ul>
                                     <ul class="checklist" style="margin-top: var(--space-4);">
                                         <li>
@@ -1798,14 +2119,17 @@
                         if (externalFactorCheckbox && externalFactorCheckbox.checked) {
                             tab.classList.add('external-factor'); // Red highlight takes precedence over prep progress
                         } else {
-                            // Only these three drive the traffic light. A checkbox that doesn't exist
-                            // for this unit (e.g. no workshop hours configured) counts as satisfied,
-                            // not as a blocker - it was never a requirement for this unit in the first place.
+                            // All four prep checkboxes plus Published drive the traffic light. A
+                            // checkbox that doesn't exist for this unit (e.g. no seminar hours
+                            // configured) counts as satisfied, not as a blocker - it was never a
+                            // requirement for this unit in the first place.
                             const lectureCheckbox = card.querySelector(`input[name="week-${weekNumber}-prep-lecture"]`);
                             const workshopCheckbox = card.querySelector(`input[name="week-${weekNumber}-prep-workshop"]`);
+                            const seminarCheckbox = card.querySelector(`input[name="week-${weekNumber}-prep-seminar"]`);
+                            const tutorialCheckbox = card.querySelector(`input[name="week-${weekNumber}-prep-tutorial"]`);
                             const publishedCheckbox = card.querySelector(`input[name="week-${weekNumber}-published"]`);
 
-                            const relevant = [lectureCheckbox, workshopCheckbox, publishedCheckbox].filter(Boolean);
+                            const relevant = [lectureCheckbox, workshopCheckbox, seminarCheckbox, tutorialCheckbox, publishedCheckbox].filter(Boolean);
                             const satisfied = relevant.filter((checkbox) => checkbox.checked);
 
                             if (relevant.length === 0 || satisfied.length === 0) {
@@ -1822,6 +2146,9 @@
                     });
 
                     dashboardSummaryManager.update();
+                    if (stripManager.mode === 'board') {
+                        stripManager.groupBoardCards();
+                    }
                 },
                 getActiveWeek() {
                     const activeTab = workspace.querySelector('.week-tab.active');
@@ -2284,14 +2611,23 @@
                 calculator.update();
                 syllabusHeaderManager.update();
 
-                if (['teaching-weeks', 'startDate', 'mmuTerm', 'dateSource'].includes(e.target.name) || ['teaching-weeks', 'start-date', 'mmu-term'].includes(e.target.id)) {
-                    workspaceManager.generateWeeks();
+                const triggersRebuild = ['teaching-weeks', 'startDate', 'mmuTerm', 'dateSource', 'lecture', 'workshop', 'seminar', 'tutorial'].includes(e.target.name)
+                    || ['teaching-weeks', 'start-date', 'mmu-term'].includes(e.target.id);
+
+                if (triggersRebuild) {
+                    const rebuiltData = workspaceManager.generateWeeks();
+                    workspaceManager.populateWeeks(rebuiltData || state.getFormData());
                 }
 
                 unsavedChangesManager.markDirty();
             });
 
             workspace.addEventListener('click', (e) => {
+                if (e.target.closest('#strip-cycle-button')) {
+                    stripManager.cycle();
+                    return;
+                }
+
                 // Handle week tab clicks
                 const tab = e.target.closest('.week-tab');
                 if (tab) {
@@ -2308,6 +2644,11 @@
                     if (selectedCard) {
                         selectedCard.classList.remove('hidden');
                         selectedCard.classList.add('active');
+                    }
+                    // Selecting a week from Timeline/Board mode returns the strip to Cards
+                    // mode, so the tab strip and open card are visible together.
+                    if (stripManager.mode !== 'cards') {
+                        stripManager.setMode('cards');
                     }
                 }
 
